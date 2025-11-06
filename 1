@@ -82,6 +82,10 @@ function law5()
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 end
 
+function again()
+    game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("RestartGame"):InvokeServer()
+end
+
 ChooseMode()
 task.wait(31)
 law1()
@@ -96,4 +100,6 @@ for i=1,3 do
     law5()
 end
 task.wait(1)
-law4()
+for i=1,2 do
+    law4
+end
