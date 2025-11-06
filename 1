@@ -83,14 +83,14 @@ game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChil
 end
 
 function law6()
-    local args = {
+local args = {
 	"unit_lawnmower",
 	{
 		Valid = true,
 		PathIndex = 1,
-		Position = vector.create(-907.3809814453125, 62.18030548095703, -105.73877716064453),
-		DistanceAlongPath = 313.5632839202881,
-		CF = CFrame.new(-907.3809814453125, 62.18030548095703, -105.73877716064453, 1, 0, -0, -0, 1, -0, -0, 0, 1),
+		Position = vector.create(-907.3809814453125, 62.18030548095703, -110.3688735961914),
+		DistanceAlongPath = 308.9331874847412,
+		CF = CFrame.new(-907.3809814453125, 62.18030548095703, -110.3688735961914, 1, 0, -0, -0, 1, -0, -0, 0, 1),
 		Rotation = 180
 	}
 }
@@ -114,7 +114,6 @@ task.wait(19)
 for i=1,3 do
     law5()
 end
-task.wait(0)
 for i=1,2 do
     law6()
 end
