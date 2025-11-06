@@ -1,3 +1,5 @@
+
+
 function law1()
 	local args = {
 	"unit_lawnmower",
@@ -52,7 +54,6 @@ function law3()
 }
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 end
-
 function law4()
     local args = {
 	"unit_lawnmower",
@@ -117,32 +118,21 @@ function again()
     game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("RestartGame"):InvokeServer()
 end
 
-while true do
-	ChooseMode()
-	task.wait(31)
-	law1()
-
-	task.wait(21)
-	law2()
-
-	task.wait(16)
-	law3()
-
-	task.wait(5)
-	law4()
-
-	task.wait(19)
-	for i = 1, 3 do
-		law5()
-	end
-
-	task.wait(2)
-	for i = 1, 2 do
-		law6()
-	end
-
-	law7()
-
-	task.wait(10)
-	again()
+ChooseMode()
+task.wait(31)
+law1()
+task.wait(21)
+law2()
+task.wait(16)
+law3()
+task.wait(5)
+law4()
+task.wait(19)
+for i=1,3 do
+    law5()
 end
+task.wait(2)
+for i=1,2 do
+    law6()
+end
+law7()
