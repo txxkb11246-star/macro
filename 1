@@ -67,6 +67,21 @@ function law4()
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 end
 
+function law5()
+    local args = {
+	"unit_lawnmower",
+	{
+		Valid = true,
+		PathIndex = 1,
+		Position = vector.create(-866.0189819335938, 62.18030548095703, -123.05203247070312),
+		DistanceAlongPath = 254.88802909851074,
+		CF = CFrame.new(-866.0189819335938, 62.18030548095703, -123.05203247070312, -0, -0, -1, -0, 1, -0, 1, 0, -0),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+end
+
 ChooseMode()
 task.wait(31)
 law1()
@@ -76,3 +91,7 @@ task.wait(16)
 law3()
 task.wait(5)
 law4()
+task.wait(21)
+for i=1,4 do
+    law5()
+end
