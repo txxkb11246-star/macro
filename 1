@@ -1,0 +1,78 @@
+function law1()
+	local args = {
+	"unit_lawnmower",
+	{
+		Valid = true,
+		PathIndex = 3,
+		Position = vector.create(-853.1721801757812, 62.18030548095703, -123.05203247070312),
+		DistanceAlongPath = 238.70819091796875,
+		CF = CFrame.new(-853.1721801757812, 62.18030548095703, -123.05203247070312, -0, 0, 1, 0, 1, -0, -1, 0, -0),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+end
+
+function ChooseMode()
+	local args = {
+		"dif_impossible"
+	}
+	game:GetService("ReplicatedStorage")
+		:WaitForChild("RemoteFunctions")
+		:WaitForChild("PlaceDifficultyVote")
+		:InvokeServer(unpack(args))
+end
+
+function law2()
+local args = {
+	"unit_lawnmower",
+	{
+		Valid = true,
+		PathIndex = 3,
+		Position = vector.create(-853.1721801757812, 62.18030548095703, -123.05203247070312),
+		DistanceAlongPath = 238.70819091796875,
+		CF = CFrame.new(-853.1721801757812, 62.18030548095703, -123.05203247070312, -0, 0, 1, 0, 1, -0, -1, 0, -0),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+end
+
+function law3()
+    local args = {
+	"unit_lawnmower",
+	{
+		Valid = true,
+		PathIndex = 2,
+		Position = vector.create(-857.3809814453125, 62.18030548095703, -118.5089111328125),
+		DistanceAlongPath = 218.54251098632812,
+		CF = CFrame.new(-857.3809814453125, 62.18030548095703, -118.5089111328125, 1, 0, -0, -0, 1, -0, -0, 0, 1),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+end
+function law4()
+    local args = {
+	"unit_lawnmower",
+	{
+		Valid = true,
+		PathIndex = 1,
+		Position = vector.create(-907.3809814453125, 62.18001937866211, -105.01107025146484),
+		DistanceAlongPath = 314.2909898236033,
+		CF = CFrame.new(-907.3809814453125, 62.18001937866211, -105.01107025146484, 1, 0, -0, -0, 0.9999709129333496, -0.00763336569070816, -0, 0.00763336569070816, 0.9999709129333496),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+end
+
+ChooseMode()
+task.wait(31)
+law1()
+task.wait(21)
+law2()
+task.wait(16)
+law3()
+task.wait(3)
+law4()
