@@ -1,3 +1,7 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RemoteFunctions = ReplicatedStorage:WaitForChild("RemoteFunctions")
+local Restart = RemoteFunctions:WaitForChild("RestartGame")
+
 function law1()
 	local args = {
 	"unit_lawnmower",
@@ -134,5 +138,6 @@ for i=1,2 do
     law6()
 end
 law7()
-task.wait()
-again()
+ReplicatedStorage:WaitForChild("GameEnded").Event:Wait()
+
+Restart:InvokeServer()
