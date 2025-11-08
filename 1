@@ -112,9 +112,36 @@ local args = {
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))    
 end
 
+-- ฟังก์ชัน restart เกม
 function again()
-    game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("RestartGame"):InvokeServer()
+	local rs = game:GetService("ReplicatedStorage")
+	local rf = rs:WaitForChild("RemoteFunctions")
+	local restart = rf:WaitForChild("RestartGame")
+
+	print("🔁 เรียก RestartGame จาก again() ...")
+	local ok, result = pcall(function()
+		return restart:InvokeServer()
+	end)
+
+	if ok then
+		print("✅ รีสตาร์ทเกมสำเร็จ:", result)
+	else
+		warn("⚠️ เกิดข้อผิดพลาดในการรีสตาร์ท:", result)
+	end
 end
+
+-- 🔍 ตรวจจับ event จบเกมจาก ReplicatedStorage.RemoteEvents.ShowGameEnd
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RemoteEvents = ReplicatedStorage:WaitForChild("RemoteEvents")
+local ShowGameEnd = RemoteEvents:WaitForChild("ShowGameEnd")
+
+print("👀 รอ event ShowGameEnd จากเซิร์ฟเวอร์...")
+
+ShowGameEnd.OnClientEvent:Connect(function(...)
+	print("🏁 ตรวจพบว่าเกมจบแล้ว! เรียก again() อัตโนมัติ")
+	task.wait(2) -- รอให้ระบบเกมเคลียร์ก่อน restart
+	again()
+end)
 
 ChooseMode()
 task.wait(31)
@@ -134,5 +161,4 @@ for i=1,2 do
     law6()
 end
 law7()
-task.wait(15)
 again()
