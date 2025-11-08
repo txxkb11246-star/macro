@@ -143,24 +143,22 @@ ShowGameEnd.OnClientEvent:Connect(function(...)
 	again()
 end)
 
-task.spawn(function()
-    while true do
-        ChooseMode()
-        task.wait(31)
-        law1()
-        task.wait(21)
-        law2()
-        task.wait(16)
-        law3()
-        task.wait(5)
-        law4()
-        task.wait(19)
-        for i = 1, 3 do law5() end
-        task.wait(2)
-        for i = 1, 2 do law6() end
-        law7()
-        task.wait(1)
-        again()
-        task.wait(5) -- ให้เซิร์ฟเวอร์รีเซ็ตก่อน loop ต่อ
-    end
-end)
+ChooseMode()
+task.wait(31)
+law1()
+task.wait(21)
+law2()
+task.wait(16)
+law3()
+task.wait(5)
+law4()
+task.wait(19)
+for i=1,3 do
+    law5()
+end
+task.wait(2)
+for i=1,2 do
+    law6()
+end
+law7()
+again()
