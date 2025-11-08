@@ -1,71 +1,152 @@
+function law1()
+	local args = {
+	"unit_lawnmower",
+	{
+		Valid = true,
+		PathIndex = 3,
+		Position = vector.create(-853.1721801757812, 62.18030548095703, -123.05203247070312),
+		DistanceAlongPath = 238.70819091796875,
+		CF = CFrame.new(-853.1721801757812, 62.18030548095703, -123.05203247070312, -0, 0, 1, 0, 1, -0, -1, 0, -0),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+end
+
+function ChooseMode()
+	local args = {
+		"dif_impossible"
+	}
+	game:GetService("ReplicatedStorage")
+		:WaitForChild("RemoteFunctions")
+		:WaitForChild("PlaceDifficultyVote")
+		:InvokeServer(unpack(args))
+end
+
+function law2()
+local args = {
+	"unit_lawnmower",
+	{
+		Valid = true,
+		PathIndex = 3,
+		Position = vector.create(-853.1721801757812, 62.18030548095703, -123.05203247070312),
+		DistanceAlongPath = 238.70819091796875,
+		CF = CFrame.new(-853.1721801757812, 62.18030548095703, -123.05203247070312, -0, 0, 1, 0, 1, -0, -1, 0, -0),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+end
+
+function law3()
+    local args = {
+	"unit_lawnmower",
+	{
+		Valid = true,
+		PathIndex = 2,
+		Position = vector.create(-857.3809814453125, 62.18030548095703, -118.5089111328125),
+		DistanceAlongPath = 218.54251098632812,
+		CF = CFrame.new(-857.3809814453125, 62.18030548095703, -118.5089111328125, 1, 0, -0, -0, 1, -0, -0, 0, 1),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+end
+function law4()
+    local args = {
+	"unit_lawnmower",
+	{
+		Valid = true,
+		PathIndex = 1,
+		Position = vector.create(-907.3809814453125, 62.18001937866211, -105.01107025146484),
+		DistanceAlongPath = 314.2909898236033,
+		CF = CFrame.new(-907.3809814453125, 62.18001937866211, -105.01107025146484, 1, 0, -0, -0, 0.9999709129333496, -0.00763336569070816, -0, 0.00763336569070816, 0.9999709129333496),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+end
+
+function law5()
+local args = {
+	"unit_lawnmower",
+	{
+		Valid = true,
+		PathIndex = 1,
+		Position = vector.create(-875.4938354492188, 62.18030548095703, -123.05203247070312),
+		DistanceAlongPath = 264.36288261413574,
+		CF = CFrame.new(-875.4938354492188, 62.18030548095703, -123.05203247070312, -0, -0, -1, -0, 1, -0, 1, 0, -0),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+end
+
+function law6()
+local args = {
+	"unit_lawnmower",
+	{
+		Valid = true,
+		PathIndex = 1,
+		Position = vector.create(-907.3809814453125, 62.18030548095703, -110.3688735961914),
+		DistanceAlongPath = 308.9331874847412,
+		CF = CFrame.new(-907.3809814453125, 62.18030548095703, -110.3688735961914, 1, 0, -0, -0, 1, -0, -0, 0, 1),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+end
+
+function law7()
+local args = {
+	"unit_lawnmower",
+	{
+		Valid = true,
+		PathIndex = 1,
+		Position = vector.create(-907.3809814453125, 62.18030548095703, -106.6678466796875),
+		DistanceAlongPath = 312.6342144012451,
+		CF = CFrame.new(-907.3809814453125, 62.18030548095703, -106.6678466796875, 1, 0, -0, -0, 1, -0, -0, 0, 1),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))    
+end
+
+function again()
+	local rs = game:GetService("ReplicatedStorage")
+	local rf = rs:WaitForChild("RemoteFunctions")
+	local restart = rf:WaitForChild("RestartGame")
+
+	local ok, result = pcall(function()
+		return restart:InvokeServer()
+	end)
+end
+
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RemoteFunctions = ReplicatedStorage:WaitForChild("RemoteFunctions")
 local RemoteEvents = ReplicatedStorage:WaitForChild("RemoteEvents")
 local ShowGameEnd = RemoteEvents:WaitForChild("ShowGameEnd")
 
--- 🧩 ฟังก์ชันวางยูนิต
-local function placeUnit(unit, data)
-    RemoteFunctions:WaitForChild("PlaceUnit"):InvokeServer(unit, data)
-end
-
--- 🧩 ฟังก์ชันเลือกโหมด
-local function ChooseMode()
-    RemoteFunctions:WaitForChild("PlaceDifficultyVote"):InvokeServer("dif_impossible")
-end
-
--- 🧩 ฟังก์ชันรีสตาร์ทเกม
-local function RestartGame()
-    local ok, result = pcall(function()
-        return RemoteFunctions:WaitForChild("RestartGame"):InvokeServer()
-    end)
-    if ok then
-        print("🔁 Restarted! Running script again...")
-        task.wait(3)
-        StartGame() -- 🔁 เรียกใหม่หลัง restart สำเร็จ
-    else
-        warn("Restart failed:", result)
-    end
-end
-
--- 🧩 ฟังก์ชันหลัก (รวมทุกอย่างไว้ในนี้)
-function StartGame()
-    print("▶️ Starting game script...")
-
-    ChooseMode()
-    task.wait(31)
-
-    placeUnit("unit_lawnmower", {Valid = true, PathIndex = 3, Position = vector.create(-853.17, 62.18, -123.05), DistanceAlongPath = 238.7, CF = CFrame.new(-853.17, 62.18, -123.05), Rotation = 180})
-    task.wait(21)
-
-    placeUnit("unit_lawnmower", {Valid = true, PathIndex = 3, Position = vector.create(-853.17, 62.18, -123.05), DistanceAlongPath = 238.7, CF = CFrame.new(-853.17, 62.18, -123.05), Rotation = 180})
-    task.wait(16)
-
-    placeUnit("unit_lawnmower", {Valid = true, PathIndex = 2, Position = vector.create(-857.38, 62.18, -118.50), DistanceAlongPath = 218.5, CF = CFrame.new(-857.38, 62.18, -118.50), Rotation = 180})
-    task.wait(5)
-
-    placeUnit("unit_lawnmower", {Valid = true, PathIndex = 1, Position = vector.create(-907.38, 62.18, -105.01), DistanceAlongPath = 314.29, CF = CFrame.new(-907.38, 62.18, -105.01), Rotation = 180})
-    task.wait(19)
-
-    for i = 1, 3 do
-        placeUnit("unit_lawnmower", {Valid = true, PathIndex = 1, Position = vector.create(-875.49, 62.18, -123.05), DistanceAlongPath = 264.36, CF = CFrame.new(-875.49, 62.18, -123.05), Rotation = 180})
-    end
-    task.wait(2)
-
-    for i = 1, 2 do
-        placeUnit("unit_lawnmower", {Valid = true, PathIndex = 1, Position = vector.create(-907.38, 62.18, -110.36), DistanceAlongPath = 308.93, CF = CFrame.new(-907.38, 62.18, -110.36), Rotation = 180})
-    end
-
-    placeUnit("unit_lawnmower", {Valid = true, PathIndex = 1, Position = vector.create(-907.38, 62.18, -106.66), DistanceAlongPath = 312.63, CF = CFrame.new(-907.38, 62.18, -106.66), Rotation = 180})
-
-    RestartGame() -- ✅ เมื่อรันจบ ให้รีสตาร์ท
-end
-
--- 📡 เมื่อเกมจบ (เซิร์ฟส่งสัญญาณมา)
-ShowGameEnd.OnClientEvent:Connect(function()
-    print("🏁 Game ended! Restarting...")
-    task.wait(2)
-    RestartGame()
+ShowGameEnd.OnClientEvent:Connect(function(...)
+	task.wait(2)
+	again()
 end)
 
--- ▶️ เริ่มรันรอบแรก
-StartGame()
+ChooseMode()
+task.wait(31)
+law1()
+task.wait(21)
+law2()
+task.wait(16)
+law3()
+task.wait(5)
+law4()
+task.wait(19)
+for i=1,3 do
+    law5()
+end
+task.wait(2)
+for i=1,2 do
+    law6()
+end
+law7()
+again()
