@@ -1,0 +1,84 @@
+function playagain()
+    game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("RestartGame"):InvokeServer()
+end
+function selectmode()
+    local args = {
+	"dif_apocalypse"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceDifficultyVote"):InvokeServer(unpack(args))
+end
+function raff1()
+    local args = {
+	"unit_rafflesia",
+	{
+		Valid = true,
+		PathIndex = 1,
+		Position = vector.create(51.551246643066406, -21.75, -54.6295280456543),
+		DistanceAlongPath = 5.913198724685674,
+		CF = CFrame.new(51.551246643066406, -21.75, -54.6295280456543, 0.7071068286895752, 0, -0.7071067690849304, -0, 1, -0, 0.7071068286895752, 0, 0.7071067690849304),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+
+end
+function raff2()
+    local args = {
+	"unit_rafflesia",
+	{
+		Valid = true,
+		PathIndex = 2,
+		Position = vector.create(-54.302581787109375, -21.75, -53.1189079284668),
+		DistanceAlongPath = 8.049594790874286,
+		CF = CFrame.new(-54.302581787109375, -21.75, -53.1189079284668, 0.7071068286895752, 0, 0.7071067690849304, -0, 1, -0, -0.7071068286895752, 0, 0.7071067690849304),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+end
+function raff3()
+    local args = {
+	"unit_rafflesia",
+	{
+		Valid = true,
+		PathIndex = 1,
+		Position = vector.create(51.909950256347656, -21.75, -54.98823165893555),
+		DistanceAlongPath = 5.405915231144293,
+		CF = CFrame.new(51.909950256347656, -21.75, -54.98823165893555, 0.7071068286895752, 0, -0.7071067690849304, -0, 1, -0, 0.7071068286895752, 0, 0.7071067690849304),
+		Rotation = 180
+	}
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+end
+function upraff3()
+    local player = game.Players.LocalPlayer
+local seedDisplay = player:WaitForChild("PlayerGui")
+    :WaitForChild("GameGui")
+    :WaitForChild("Screen")
+    :WaitForChild("Bottom")
+    :WaitForChild("CurrencyDisplay")
+    :WaitForChild("SeedsDisplay")
+    :WaitForChild("Title")
+
+local function getSeedValue()
+	local num = tonumber(seedDisplay.Text)
+	return num or 0
+end
+
+repeat
+	task.wait(0.5)
+until getSeedValue() >= 8000
+
+local args = {469}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit"):InvokeServer(unpack(args))
+end
+
+playagain()
+selectmode()
+task.wait(6)
+raff1()
+task.wait(12)
+raff2()
+task.wait(54)
+raff3()
+upraff3()
