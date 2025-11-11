@@ -50,39 +50,6 @@ function raff3()
 }
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 end
-function upraff3()
-local player = game.Players.LocalPlayer
-local seedDisplay = player:WaitForChild("PlayerGui")
-    :WaitForChild("GameGui")
-    :WaitForChild("Screen")
-    :WaitForChild("Bottom")
-    :WaitForChild("CurrencyDisplay")
-    :WaitForChild("SeedsDisplay")
-    :WaitForChild("Title")
-
--- ฟังก์ชันแปลงข้อความเป็นตัวเลขปลอดภัย
-local function getSeedValue()
-	local num = tonumber(seedDisplay.Text)
-	return num or 0
-end
-
--- รอจนกว่า Seeds จะถึง 8000
-repeat
-	task.wait(0.5)
-until getSeedValue() >= 8000
-
--- เริ่มอัปเกรด
-local args = {469}
-game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit"):InvokeServer(unpack(args))
-end
-
-repeat
-	task.wait(0.5)
-until getSeedValue() >= 8000
-
-local args = {469}
-game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit"):InvokeServer(unpack(args))
-end
 
 playagain()
 selectmode()
@@ -92,4 +59,3 @@ task.wait(12)
 raff2()
 task.wait(54)
 raff3()
-upraff3()
