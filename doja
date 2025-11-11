@@ -17,7 +17,8 @@ local function waitUntilSeeds(target)
 	until parse(seedText.Text) >= target
 end
 
--- ฟังก์ชันเริ่มเกมใหม่
+-- ===== ฟังก์ชันเกม =====
+
 local function playagain()
 	local ok, err = pcall(function()
 		ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("RestartGame"):InvokeServer()
@@ -29,7 +30,6 @@ local function playagain()
 	end
 end
 
--- เลือกโหมด apocalypse
 local function selectmode()
 	local args = {"dif_apocalypse"}
 	local ok, err = pcall(function()
@@ -38,7 +38,6 @@ local function selectmode()
 	if not ok then warn("❌ PlaceDifficultyVote failed:", err) end
 end
 
--- วางยูนิต rafflesia ตัวที่ 1
 local function raff1()
 	local args = {
 		"unit_rafflesia",
@@ -60,7 +59,6 @@ local function raff1()
 	if not ok then warn("❌ PlaceUnit raff1 failed:", err) end
 end
 
--- วางยูนิต rafflesia ตัวที่ 2
 local function raff2()
 	local args = {
 		"unit_rafflesia",
@@ -82,7 +80,7 @@ local function raff2()
 	if not ok then warn("❌ PlaceUnit raff2 failed:", err) end
 end
 
--- วาง raff3 → รอ seed ≥ 8000 → อัปเกรดอัตโนมัติ
+-- raff3: วาง + รอ spawn + ดึง UID จาก Attributes + รอ Seeds ≥ 8000 + อัปเกรด
 local function raff3()
 	print("🌱 วาง rafflesia ตัวที่ 3")
 
@@ -102,23 +100,46 @@ local function raff3()
 	}
 
 	local placeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit")
-	local ok, newUnitUID = pcall(function()
-		return placeRemote:InvokeServer(unpack(args))
+	local ok, _ = pcall(function()
+		placeRemote:InvokeServer(unpack(args))
 	end)
 	if not ok then
-		warn("❌ PlaceUnit raff3 failed:", newUnitUID)
+		warn("❌ PlaceUnit raff3 failed")
 		return
 	end
-	print("✅ วางยูนิตแล้ว, UID:", newUnitUID)
+
+	-- รอ spawn ของยูนิตใน workspace
+	local entities = workspace:WaitForChild("Map"):WaitForChild("Entities")
+	local newUnit = nil
+	print("⏳ รอ spawn rafflesia...")
+
+	repeat
+		for _, u in pairs(entities:GetChildren()) do
+			if u.Name == "unit_rafflesia" and not u:GetAttribute("Checked") then
+				u:SetAttribute("Checked", true)
+				newUnit = u
+				break
+			end
+		end
+		task.wait(0.2)
+	until newUnit
+
+	-- ดึง UID จาก Attributes
+	local unitId = newUnit:GetAttribute("UID") or newUnit:GetAttribute("UnitId")
+	if not unitId then
+		warn("❌ ไม่พบ UID ของ raff3 ใน Attributes")
+		return
+	end
+	print("🔢 UID ของยูนิต:", unitId)
 
 	-- รอ Seeds ≥ 8000
 	print("⏳ รอ Seeds ≥ 8000 ก่อนอัปเกรด...")
 	waitUntilSeeds(8000)
 
-	-- เรียกอัปเกรด
+	-- อัปเกรดยูนิต
 	local upgradeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit")
 	local ok2, err = pcall(function()
-		upgradeRemote:InvokeServer(newUnitUID)
+		upgradeRemote:InvokeServer(unitId)
 	end)
 	if not ok2 then
 		warn("❌ อัปเกรด raff3 ไม่สำเร็จ:", err)
@@ -127,7 +148,7 @@ local function raff3()
 	end
 end
 
--- ====== เรียกใช้งานทั้งหมด ======
+-- ===== เรียกใช้งานทั้งหมด =====
 playagain()
 task.wait(6)
 selectmode()
@@ -136,4 +157,4 @@ raff1()
 task.wait(12)
 raff2()
 task.wait(54)
-raff3() -- วางตัว 3 รอ seed แล้วอัปเกรดอัตโนมัติ
+raff3() -- วางตัว 3 รอ UID จาก Attributes และ Seeds ≥ 8000 แล้วอัปเกรด
