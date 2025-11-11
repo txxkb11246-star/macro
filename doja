@@ -125,7 +125,7 @@ local function raff3()
 	until newUnit
 
 	-- ดึง UID จาก Attributes
-	local unitId = newUnit:GetAttribute("UID") or newUnit:GetAttribute("UnitId")
+	local unitId = newUnit:GetAttribute("ID") or newUnit:GetAttribute("UnitId")
 	if not unitId then
 		warn("❌ ไม่พบ UID ของ raff3 ใน Attributes")
 		return
