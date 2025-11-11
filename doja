@@ -1,11 +1,11 @@
 
-function selectmode()
+local function selectmode()
     local args = {
 	"dif_apocalypse"
 }
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceDifficultyVote"):InvokeServer(unpack(args))
 end
-function raff1()
+local function raff1()
     local args = {
 	"unit_rafflesia",
 	{
@@ -20,7 +20,7 @@ function raff1()
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 
 end
-function raff2()
+local function raff2()
     local args = {
 	"unit_rafflesia",
 	{
@@ -34,7 +34,7 @@ function raff2()
 }
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 end
-function raff3()
+local function raff3()
     local args = {
 	"unit_rafflesia",
 	{
@@ -48,6 +48,29 @@ function raff3()
 }
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 end
+local player = game.Players.LocalPlayer
+local seedDisplay = player:WaitForChild("PlayerGui")
+    :WaitForChild("GameGui")
+    :WaitForChild("Screen")
+    :WaitForChild("Bottom")
+    :WaitForChild("CurrencyDisplay")
+    :WaitForChild("SeedsDisplay")
+    :WaitForChild("Title")
+
+-- ฟังก์ชันแปลงข้อความเป็นตัวเลขปลอดภัย
+local function getSeedValue()
+	local num = tonumber(seedDisplay.Text)
+	return num or 0
+end
+
+-- รอจนกว่า Seeds จะถึง 8000
+repeat
+	task.wait(0.5)
+until getSeedValue() >= 8000
+
+-- เริ่มอัปเกรด
+local args = {469}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit"):InvokeServer(unpack(args))
 
 selectmode()
 task.wait(6)
