@@ -48,6 +48,9 @@ local function raff3()
 }
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 end
+
+-- === รอจน Seeds ถึง 8000 แล้วอัปเกรด raff3 ===
+
 local player = game.Players.LocalPlayer
 local seedDisplay = player:WaitForChild("PlayerGui")
     :WaitForChild("GameGui")
@@ -57,20 +60,26 @@ local seedDisplay = player:WaitForChild("PlayerGui")
     :WaitForChild("SeedsDisplay")
     :WaitForChild("Title")
 
--- ฟังก์ชันแปลงข้อความเป็นตัวเลขปลอดภัย
-local function getSeedValue()
-	local num = tonumber(seedDisplay.Text)
-	return num or 0
+-- ฟังก์ชันอ่านค่าตัวเลขจาก Text
+local function getSeed()
+	local text = seedDisplay.Text or "0"
+	text = text:gsub(",", "") -- เอาคอมม่าออก เช่น "8,000"
+	return tonumber(text) or 0
 end
 
--- รอจนกว่า Seeds จะถึง 8000
+-- รอจน Seeds >= 8000
 repeat
 	task.wait(0.5)
-until getSeedValue() >= 8000
+until getSeed() >= 8000
 
--- เริ่มอัปเกรด
+-- เรียกอัปเกรด raff3 (unit ID 469)
 local args = {469}
-game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit"):InvokeServer(unpack(args))
+game:GetService("ReplicatedStorage")
+	:WaitForChild("RemoteFunctions")
+	:WaitForChild("UpgradeUnit")
+	:InvokeServer(unpack(args))
+
+print("🌱 Seeds ถึง 8000 แล้ว → อัปเกรด raff3 สำเร็จ")
 
 selectmode()
 task.wait(6)
