@@ -34,52 +34,84 @@ local function raff2()
 }
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 end
-local function raff3()
-    local args = {
-	"unit_rafflesia",
-	{
-		Valid = true,
-		PathIndex = 1,
-		Position = vector.create(51.909950256347656, -21.75, -54.98823165893555),
-		DistanceAlongPath = 5.405915231144293,
-		CF = CFrame.new(51.909950256347656, -21.75, -54.98823165893555, 0.7071068286895752, 0, -0.7071067690849304, -0, 1, -0, 0.7071068286895752, 0, 0.7071067690849304),
-		Rotation = 180
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
-end
-
--- === รอจน Seeds ถึง 8000 แล้วอัปเกรด raff3 ===
-
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = game.Players.LocalPlayer
-local seedDisplay = player:WaitForChild("PlayerGui")
-    :WaitForChild("GameGui")
-    :WaitForChild("Screen")
-    :WaitForChild("Bottom")
-    :WaitForChild("CurrencyDisplay")
-    :WaitForChild("SeedsDisplay")
-    :WaitForChild("Title")
 
--- ฟังก์ชันอ่านค่าตัวเลขจาก Text
-local function getSeed()
-	local text = seedDisplay.Text or "0"
-	text = text:gsub(",", "") -- เอาคอมม่าออก เช่น "8,000"
-	return tonumber(text) or 0
+-- ฟังก์ชันรอจน Seeds >= target
+local function waitUntilSeeds(target)
+	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
+	local seedText = gui.Screen.Bottom.CurrencyDisplay.SeedsDisplay.Title
+	local function parse(str)
+		local cleaned = str:gsub("[^%d]", "")
+		return tonumber(cleaned) or 0
+	end
+
+	repeat
+		task.wait(0.3)
+	until parse(seedText.Text) >= target
 end
 
--- รอจน Seeds >= 8000
-repeat
-	task.wait(0.5)
-until getSeed() >= 8000
+function raff3()
+	print("🌱 เริ่มวาง rafflesia ตัวที่ 3")
 
--- เรียกอัปเกรด raff3 (unit ID 469)
-local args = {469}
-game:GetService("ReplicatedStorage")
-	:WaitForChild("RemoteFunctions")
-	:WaitForChild("UpgradeUnit")
-	:InvokeServer(unpack(args))
+	-- 1️⃣ วางยูนิต rafflesia
+	local args = {
+		"unit_rafflesia",
+		{
+			Valid = true,
+			PathIndex = 1,
+			Position = vector.create(51.909950256347656, -21.75, -54.98823165893555),
+			DistanceAlongPath = 5.405915231144293,
+			CF = CFrame.new(51.909950256347656, -21.75, -54.98823165893555,
+				0.7071068286895752, 0, -0.7071067690849304,
+				0, 1, 0,
+				0.7071068286895752, 0, 0.7071067690849304),
+			Rotation = 180
+		}
+	}
+	ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 
-print("🌱 Seeds ถึง 8000 แล้ว → อัปเกรด raff3 สำเร็จ")
+	-- 2️⃣ รอให้ยูนิตโผล่มาใน workspace แล้วเก็บ instance ไว้
+	local entities = workspace:WaitForChild("Map"):WaitForChild("Entities")
+	local newUnit = nil
+	local timeout = tick() + 10
+
+	repeat
+		for _, u in pairs(entities:GetChildren()) do
+			if u.Name == "unit_rafflesia" and not u:GetAttribute("Checked") then
+				u:SetAttribute("Checked", true)
+				newUnit = u
+				break
+			end
+		end
+		task.wait(0.2)
+	until newUnit or tick() > timeout
+
+	if not newUnit then
+		warn("❌ ไม่เจอ rafflesia หลังวาง")
+		return
+	end
+
+	print("✅ เจอ rafflesia ตัวใหม่:", newUnit)
+
+	-- 3️⃣ รอให้ seed ถึง 8000
+	print("⏳ รอ Seeds ≥ 8000 ก่อนอัปเกรด...")
+	waitUntilSeeds(8000)
+	print("💰 Seeds ถึงแล้ว! เริ่มอัปเกรด")
+
+	-- 4️⃣ อัปเกรดยูนิตนั้น
+	local upgradeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit")
+
+	-- ลองส่ง instance ก่อน (บางเกมรับ instance แทน id)
+	local ok, err = pcall(function()
+		upgradeRemote:InvokeServer(newUnit)
+	end)
+	if not ok then
+		warn("❌ อัปเกรดไม่สำเร็จ:", err)
+	else
+		print("✅ อัปเกรด raff3 เสร็จแล้ว!")
+	end
+end
 
 selectmode()
 task.wait(6)
