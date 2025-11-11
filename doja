@@ -1,198 +1,203 @@
--- === helper functions ===
-local function waitForChildChain(parent, ...)
+-- Verbose debug friendly LocalScript
+-- วางเป็น LocalScript ใน StarterPlayerScripts หรือ PlayerGui ของ LocalPlayer
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- ตรวจ LocalPlayer
+local player = Players.LocalPlayer
+if not player then
+    warn("[SCRIPT] ไม่พบ LocalPlayer — ต้องเป็น LocalScript และรันขณะ Play")
+    return
+end
+print("[SCRIPT] LocalPlayer found:", player.Name)
+
+-- safer WaitForChild with timeout
+local function safeWait(parent, name, timeout)
+    timeout = timeout or 5
+    if not parent then return nil, ("parent nil for %s"):format(name) end
+    local obj = parent:FindFirstChild(name)
+    if obj then return obj end
+    local start = tick()
+    while tick() - start < timeout do
+        obj = parent:FindFirstChild(name)
+        if obj then return obj end
+        task.wait(0.1)
+    end
+    return nil, ("timeout waiting for %s under %s"):format(name, tostring(parent))
+end
+
+local function waitForChildChainSafe(parent, ...)
     local cur = parent
     for i = 1, select("#", ...) do
         local name = select(i, ...)
-        cur = cur:WaitForChild(name)
+        local obj, err = safeWait(cur, name, 6)
+        if not obj then
+            return nil, ("failed waiting for chain element '%s': %s"):format(name, err or "unknown")
+        end
+        cur = obj
     end
     return cur
 end
 
-local player = game.Players.LocalPlayer
-
--- หาตำแหน่งของ Title label (แก้ชื่อหากโครงสร้าง GUI ต่างจากนี้)
-local seedDisplayOK, seedDisplay = pcall(function()
-    return waitForChildChain(player, "PlayerGui", "GameGui", "Screen", "Bottom", "CurrencyDisplay", "SeedsDisplay", "Title")
-end)
-
-if not seedDisplayOK then
-    warn("ไม่พบ SeedsDisplay.Title ใน PlayerGui — ตรวจสอบ path GUI ของคุณ")
+-- หา seed display
+local seedDisplay, err = waitForChildChainSafe(player, "PlayerGui", "GameGui", "Screen", "Bottom", "CurrencyDisplay", "SeedsDisplay", "Title")
+if not seedDisplay then
+    warn("[SCRIPT] ไม่พบ Seed Title:", err)
     return
 end
+print("[SCRIPT] Seed display found. Class:", seedDisplay.ClassName)
 
+-- parse number (รองรับ "8,000", "8 000")
 local function parseNumberFromText(s)
     if type(s) ~= "string" then return 0 end
-    -- เอา comma หรือ space ออก แล้วพยายาม tonumber
-    local cleaned = s:gsub("[,%s]", "")
-    return tonumber(cleaned) or 0
+    local cleaned = s:gsub("[,%s]", "") -- เอา comma / space ออก
+    local n = tonumber(cleaned)
+    if not n then
+        -- บางครั้ง GUI แสดง "8k" หรือ "8K" หรือ "8,000 (max)" -> ลองแก้ suffix
+        local suf = cleaned:match("^(%d+)%a")
+        if suf then n = tonumber(suf) end
+    end
+    return n or 0
 end
 
--- ฟังก์ชันรอจน seed >= target (ใช้ event ถ้ามี)
+-- เพิ่ม log ตอนเริ่ม
+print(string.format("[SCRIPT] initial seed text = %s -> %d", tostring(seedDisplay.Text), parseNumberFromText(seedDisplay.Text)))
+
+-- wait until seed >= target using event if available
 local function waitUntilSeedAtLeast(target, timeout)
-    timeout = timeout or 60 -- ดีฟอลต์ timeout 60 วินาที (ปรับได้)
+    timeout = timeout or 120
     local start = tick()
+    local function checkNow()
+        local v = parseNumberFromText(seedDisplay.Text)
+        return v >= target, v
+    end
 
-    -- เช็กเดี๋ยวนั้นก่อน
-    local current = parseNumberFromText(seedDisplay.Text)
-    print("ปัจจุบัน Seeds = " .. tostring(current) .. ", รอถึง " .. tostring(target))
-    if current >= target then return true end
+    local ok, current = checkNow()
+    if ok then
+        print("[SCRIPT] seed already >= target:", current)
+        return true
+    end
 
-    -- ถ้ามี GetPropertyChangedSignal ให้รอฟัง
-    if seedDisplay:GetPropertyChangedSignal then
+    if seedDisplay.GetPropertyChangedSignal then
         local done = false
         local conn
         conn = seedDisplay:GetPropertyChangedSignal("Text"):Connect(function()
-            local val = parseNumberFromText(seedDisplay.Text)
-            -- debug
-            -- print("Seeds changed ->", val)
-            if val >= target then
+            local v = parseNumberFromText(seedDisplay.Text)
+            print("[SCRIPT] seed changed ->", v)
+            if v >= target then
                 done = true
-                conn:Disconnect()
+                if conn and conn.Connected then conn:Disconnect() end
             end
         end)
         while not done do
             if tick() - start > timeout then
-                if conn.Connected then conn:Disconnect() end
+                if conn and conn.Connected then conn:Disconnect() end
                 return false, "timeout"
             end
             task.wait(0.2)
         end
         return true
     else
-        -- fallback: poll
+        -- fallback polling
         repeat
             task.wait(0.5)
-            current = parseNumberFromText(seedDisplay.Text)
-            if tick() - start > timeout then
-                return false, "timeout"
-            end
-        until current >= target
-        return true
+            local ok2, v2 = checkNow()
+            if ok2 then return true end
+        until tick() - start > timeout
+        return false, "timeout"
     end
 end
 
--- ====== ฟังก์ชันเกมของคุณ ======
-function playagain()
-    print("เรียก RestartGame")
-    local ok, err = pcall(function()
-        game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("RestartGame"):InvokeServer()
-    end)
-    if not ok then
-        warn("RestartGame failed:", err)
-    end
-end
-
-function selectmode()
-    print("เลือกโหมด dif_apocalypse")
-    local args = {"dif_apocalypse"}
-    local ok, err = pcall(function()
-        game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceDifficultyVote"):InvokeServer(unpack(args))
-    end)
-    if not ok then warn("PlaceDifficultyVote failed:", err) end
-end
-
-function raff1()
-    print("Place rafflesia 1")
-    local args = {
-        "unit_rafflesia",
-        {
-            Valid = true,
-            PathIndex = 1,
-            Position = vector.create(51.551246643066406, -21.75, -54.6295280456543),
-            DistanceAlongPath = 5.913198724685674,
-            CF = CFrame.new(51.551246643066406, -21.75, -54.6295280456543, 0.7071068286895752, 0, -0.7071067690849304, -0, 1, -0, 0.7071068286895752, 0, 0.7071067690849304),
-            Rotation = 180
-        }
-    }
-    local ok, err = pcall(function()
-        game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
-    end)
-    if not ok then warn("PlaceUnit raff1 failed:", err) end
-end
-
-function raff2()
-    print("Place rafflesia 2")
-    local args = {
-        "unit_rafflesia",
-        {
-            Valid = true,
-            PathIndex = 2,
-            Position = vector.create(-54.302581787109375, -21.75, -53.1189079284668),
-            DistanceAlongPath = 8.049594790874286,
-            CF = CFrame.new(-54.302581787109375, -21.75, -53.1189079284668, 0.7071068286895752, 0, 0.7071067690849304, -0, 1, -0, -0.7071068286895752, 0, 0.7071067690849304),
-            Rotation = 180
-        }
-    }
-    local ok, err = pcall(function()
-        game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
-    end)
-    if not ok then warn("PlaceUnit raff2 failed:", err) end
-end
-
-function raff3()
-    print("Place rafflesia 3")
-    local args = {
-        "unit_rafflesia",
-        {
-            Valid = true,
-            PathIndex = 1,
-            Position = vector.create(51.909950256347656, -21.75, -54.98823165893555),
-            DistanceAlongPath = 5.405915231144293,
-            CF = CFrame.new(51.909950256347656, -21.75, -54.98823165893555, 0.7071068286895752, 0, -0.7071067690849304, -0, 1, -0, 0.7071068286895752, 0, 0.7071067690849304),
-            Rotation = 180
-        }
-    }
-    local ok, err = pcall(function()
-        game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
-    end)
-    if not ok then warn("PlaceUnit raff3 failed:", err) end
-end
-
--- ปรับปรุง upraff3 ให้ robust และ debug friendly
-function upraff3()
-    print("start upraff3: รอ seed >= 8000")
-    local ok, reason = waitUntilSeedAtLeast(8000, 180) -- timeout 180s
-    if not ok then
-        warn("รอ seed ล้มเหลว:", reason or "unknown")
-        return
-    end
-    print("seed ถึง 8000 ขึ้นไปแล้ว -> พยายามเรียก UpgradeUnit")
-
-    -- ตรวจสอบ RemoteFunction ก่อน
-    local rfFolder = game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions", 5)
+-- wrapper to safely call remote functions
+local function safeInvoke(remoteName, ...)
+    local rfFolder = ReplicatedStorage:FindFirstChild("RemoteFunctions")
     if not rfFolder then
-        warn("ไม่พบ RemoteFunctions ใน ReplicatedStorage")
-        return
+        return false, ("RemoteFunctions folder not found in ReplicatedStorage")
     end
-
-    local upgradeRemote = rfFolder:FindFirstChild("UpgradeUnit")
-    if not upgradeRemote then
-        warn("ไม่พบ UpgradeUnit RemoteFunction")
-        return
+    local remote = rfFolder:FindFirstChild(remoteName)
+    if not remote then
+        return false, ("RemoteFunction %s not found"):format(remoteName)
     end
-
-    -- ** IMPORTANT ** : ตรวจสอบว่า args ที่ส่งถูกต้องสำหรับเซิร์ฟเวอร์
-    -- คุณส่ง {469} — ให้แน่ใจว่า 469 คือ ID/Uid ของยูนิตที่คุณเป็นเจ้าของจริงๆ
-    local args = {469}
-    local ok2, ret = pcall(function()
-        return upgradeRemote:InvokeServer(unpack(args))
+    local ok, retOrErr = pcall(function()
+        return remote:InvokeServer(...)
     end)
-
-    if not ok2 then
-        warn("UpgradeUnit InvokeServer failed:", ret)
-    else
-        print("UpgradeUnit returned:", ret)
+    if not ok then
+        return false, retOrErr
     end
+    return true, retOrErr
 end
 
--- === เรียกใช้ sequence ===
+-- === game sequence (with debug prints) ===
+local function playagain()
+    print("[SCRIPT] calling RestartGame")
+    local ok, res = safeInvoke("RestartGame")
+    if not ok then warn("[SCRIPT] RestartGame failed:", res) else print("[SCRIPT] RestartGame ok:", res) end
+end
+
+local function selectmode()
+    print("[SCRIPT] calling PlaceDifficultyVote dif_apocalypse")
+    local ok, res = safeInvoke("PlaceDifficultyVote", "dif_apocalypse")
+    if not ok then warn("[SCRIPT] PlaceDifficultyVote failed:", res) else print("[SCRIPT] PlaceDifficultyVote ok:", res) end
+end
+
+local function placeUnit(unitArgs)
+    local ok, res = safeInvoke("PlaceUnit", unpack(unitArgs))
+    if not ok then warn("[SCRIPT] PlaceUnit failed:", res) else print("[SCRIPT] PlaceUnit ok:", res) end
+end
+
+local function upraff3()
+    print("[SCRIPT] upraff3: waiting for seed >= 8000")
+    local ok, reason = waitUntilSeedAtLeast(8000, 180)
+    if not ok then
+        warn("[SCRIPT] waitUntilSeedAtLeast failed:", reason)
+        return
+    end
+    print("[SCRIPT] seed threshold reached -> calling UpgradeUnit with {469}")
+    local ok2, res2 = safeInvoke("UpgradeUnit", 469)
+    if not ok2 then warn("[SCRIPT] UpgradeUnit failed:", res2) else print("[SCRIPT] UpgradeUnit returned:", res2) end
+end
+
+-- call sequence
 playagain()
 selectmode()
 task.wait(6)
-raff1()
+
+placeUnit{
+    "unit_rafflesia",
+    {
+        Valid = true,
+        PathIndex = 1,
+        Position = vector.create(51.551246643066406, -21.75, -54.6295280456543),
+        DistanceAlongPath = 5.913198724685674,
+        CF = CFrame.new(51.551246643066406, -21.75, -54.6295280456543, 0.7071068286895752, 0, -0.7071067690849304, -0, 1, -0, 0.7071068286895752, 0, 0.7071067690849304),
+        Rotation = 180
+    }
+}
 task.wait(12)
-raff2()
+placeUnit{
+    "unit_rafflesia",
+    {
+        Valid = true,
+        PathIndex = 2,
+        Position = vector.create(-54.302581787109375, -21.75, -53.1189079284668),
+        DistanceAlongPath = 8.049594790874286,
+        CF = CFrame.new(-54.302581787109375, -21.75, -53.1189079284668, 0.7071068286895752, 0, 0.7071067690849304, -0, 1, -0, -0.7071068286895752, 0, 0.7071067690849304),
+        Rotation = 180
+    }
+}
 task.wait(54)
-raff3()
--- เรียก upraff3 หนึ่งครั้ง (ไม่ต้องเรียกซ้ำโดยไม่มี delay)
+placeUnit{
+    "unit_rafflesia",
+    {
+        Valid = true,
+        PathIndex = 1,
+        Position = vector.create(51.909950256347656, -21.75, -54.98823165893555),
+        DistanceAlongPath = 5.405915231144293,
+        CF = CFrame.new(51.909950256347656, -21.75, -54.98823165893555, 0.7071068286895752, 0, -0.7071067690849304, -0, 1, -0, 0.7071068286895752, 0, 0.7071067690849304),
+        Rotation = 180
+    }
+}
+
+-- สุดท้ายเรียก upraff3
 upraff3()
