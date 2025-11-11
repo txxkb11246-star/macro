@@ -2,7 +2,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = game.Players.LocalPlayer
 
 -- ===== ฟังก์ชันช่วย =====
--- ฟังก์ชันรอจน Seeds >= target
+-- ฟังก์ชันรอจน Seeds ≥ target
 local function waitUntilSeeds(target)
     local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
     local seedText = gui.Screen.Bottom.CurrencyDisplay.SeedsDisplay.Title
@@ -80,8 +80,8 @@ local function raff2()
     if not ok then warn("❌ PlaceUnit raff2 failed:", err) end
 end
 
--- raff3_debug: วาง + รอ spawn + ตรวจสอบ UID + รอ Seeds ≥ 8000 + อัปเกรด พร้อม debug response
-local function raff3_debug()
+-- raff3_debug_full: วาง + รอ spawn + ตรวจสอบ UID + รอ Seeds ≥ 8000 + อัปเกรด พร้อม debug response
+local function raff3_debug_full()
     print("🌱 เริ่มวาง rafflesia ตัวที่ 3")
 
     local argsPlace = {
@@ -109,11 +109,10 @@ local function raff3_debug()
     end
     print("✅ วางยูนิตเรียบร้อยแล้ว")
 
-    -- รอ spawn ของยูนิตใน workspace
+    -- รอ spawn ของยูนิต
     local entities = workspace:WaitForChild("Map"):WaitForChild("Entities")
     local newUnit = nil
     print("⏳ รอ spawn rafflesia...")
-
     repeat
         for _, u in pairs(entities:GetChildren()) do
             if u.Name == "unit_rafflesia" and not u:GetAttribute("Checked") then
@@ -124,39 +123,48 @@ local function raff3_debug()
         end
         task.wait(0.2)
     until newUnit
-
     print("✅ ยูนิต spawn แล้ว")
 
-    -- ตรวจสอบ Attributes ของยูนิต
-    local attrs = newUnit:GetAttributes()
-    print("Attributes ของยูนิต:", attrs)
+    -- ตรวจสอบ Attributes
+    print("🔍 Attributes ของยูนิต:")
+    for k, v in pairs(newUnit:GetAttributes()) do
+        print(k, v)
+    end
 
     -- หา UID
     local unitId = newUnit:GetAttribute("ID") or newUnit:GetAttribute("UnitId")
     if not unitId then
-        warn("❌ ไม่พบ UID ของ raff3 ใน Attributes")
+        warn("❌ ไม่พบ UID ของ raff3")
         return
     end
     print("🔢 UID ของยูนิต:", unitId)
 
     -- รอ Seeds ≥ 8000
-    print("⏳ รอ Seeds ≥ 8000 ก่อนอัปเกรด...")
+    print("⏳ รอ Seeds ≥ 8000...")
     waitUntilSeeds(8000)
-    task.wait(0.5) -- รอให้ระบบอัปเดตยูนิต
+    task.wait(1) -- รอให้ server อัปเดต state
 
-    -- เรียก UpgradeUnit พร้อม debug response
+    -- UpgradeUnit: ลองหลายรูปแบบ
     local upgradeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit")
-    local argsUpgrade = {unitId} -- UID ตรง ๆ (ปรับเป็น table ถ้า server ต้องการ)
-    
-    print("🚀 กำลังส่งคำสั่ง UpgradeUnit... args:", argsUpgrade[1])
-    local ok2, response = pcall(function()
-        return upgradeRemote:InvokeServer(unpack(argsUpgrade))
-    end)
+    local attempts = {
+        {unitId},                  -- UID ตรง ๆ
+        {{UnitId = unitId}},       -- table แบบ {UnitId=...}
+        {{ID = unitId}}            -- table แบบ {ID=...}
+    }
 
-    if not ok2 then
-        warn("❌ UpgradeUnit failed:", response)
-    else
-        print("✅ UpgradeUnit response:", response)
+    for i, argsUpgrade in ipairs(attempts) do
+        print(string.format("🚀 ลอง upgrade แบบ %d args:", i), argsUpgrade)
+        local ok2, response = pcall(function()
+            return upgradeRemote:InvokeServer(unpack(argsUpgrade))
+        end)
+        print("✅ UpgradeUnit response:", ok2, response)
+        if ok2 and response ~= false then
+            print("🎉 Upgrade สำเร็จแบบที่", i)
+            break
+        else
+            print("❌ Upgrade ล้มเหลวแบบที่", i)
+        end
+        task.wait(0.5)
     end
 end
 
@@ -169,4 +177,4 @@ raff1()
 task.wait(12)
 raff2()
 task.wait(54)
-raff3_debug()
+raff3_debug_full()
