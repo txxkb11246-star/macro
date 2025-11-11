@@ -1,6 +1,4 @@
-function playagain()
-    game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("RestartGame"):InvokeServer()
-end
+
 function selectmode()
     local args = {
 	"dif_apocalypse"
@@ -51,7 +49,6 @@ function raff3()
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 end
 
-playagain()
 selectmode()
 task.wait(6)
 raff1()
