@@ -41,6 +41,7 @@ local player = game.Players.LocalPlayer
 local function waitUntilSeeds(target)
 	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 	local seedText = gui.Screen.Bottom.CurrencyDisplay.SeedsDisplay.Title
+
 	local function parse(str)
 		local cleaned = str:gsub("[^%d]", "")
 		return tonumber(cleaned) or 0
@@ -48,6 +49,8 @@ local function waitUntilSeeds(target)
 
 	repeat
 		task.wait(0.3)
+		-- debug
+		print("Seed ตอนนี้:", parse(seedText.Text))
 	until parse(seedText.Text) >= target
 end
 
@@ -69,13 +72,21 @@ function raff3()
 			Rotation = 180
 		}
 	}
-	ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 
-	-- 2️⃣ รอให้ยูนิตโผล่มาใน workspace แล้วเก็บ instance ไว้
+	local placeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit")
+	local success, err = pcall(function()
+		placeRemote:InvokeServer(unpack(args))
+	end)
+	if not success then
+		warn("❌ PlaceUnit failed:", err)
+		return
+	end
+
+	-- 2️⃣ รอให้ยูนิตโผล่มาใน workspace และเก็บ instance
 	local entities = workspace:WaitForChild("Map"):WaitForChild("Entities")
 	local newUnit = nil
-	local timeout = tick() + 10
 
+	print("⏳ รอ spawn rafflesia...")
 	repeat
 		for _, u in pairs(entities:GetChildren()) do
 			if u.Name == "unit_rafflesia" and not u:GetAttribute("Checked") then
@@ -85,26 +96,26 @@ function raff3()
 			end
 		end
 		task.wait(0.2)
-	until newUnit or tick() > timeout
-
-	if not newUnit then
-		warn("❌ ไม่เจอ rafflesia หลังวาง")
-		return
-	end
+	until newUnit
 
 	print("✅ เจอ rafflesia ตัวใหม่:", newUnit)
 
-	-- 3️⃣ รอให้ seed ถึง 8000
+	-- 3️⃣ ดึง UID/UnitId ของยูนิต
+	local unitId = newUnit:GetAttribute("UID") or newUnit:GetAttribute("UnitId") or newUnit:GetAttribute("Id")
+	if not unitId then
+		warn("❌ ไม่พบ UID/UnitId ของ raff3")
+		return
+	end
+	print("🔢 UID ของยูนิต:", unitId)
+
+	-- 4️⃣ รอ Seeds ≥ 8000
 	print("⏳ รอ Seeds ≥ 8000 ก่อนอัปเกรด...")
 	waitUntilSeeds(8000)
-	print("💰 Seeds ถึงแล้ว! เริ่มอัปเกรด")
 
-	-- 4️⃣ อัปเกรดยูนิตนั้น
+	-- 5️⃣ อัปเกรดยูนิต
 	local upgradeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit")
-
-	-- ลองส่ง instance ก่อน (บางเกมรับ instance แทน id)
 	local ok, err = pcall(function()
-		upgradeRemote:InvokeServer(newUnit)
+		upgradeRemote:InvokeServer(unitId)
 	end)
 	if not ok then
 		warn("❌ อัปเกรดไม่สำเร็จ:", err)
@@ -112,7 +123,6 @@ function raff3()
 		print("✅ อัปเกรด raff3 เสร็จแล้ว!")
 	end
 end
-
 selectmode()
 task.wait(6)
 raff1()
