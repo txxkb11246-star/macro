@@ -80,7 +80,7 @@ local function raff2()
     if not ok then warn("❌ PlaceUnit raff2 failed:", err) end
 end
 
--- raff3_debug_full: วาง + รอ spawn + ตรวจสอบ UID + รอ Seeds ≥ 8000 + อัปเกรด พร้อม debug response
+-- raff3_debug_full: วาง + รอ spawn + ตรวจสอบ Attributes + รอ Seeds + Upgrade + debug
 local function raff3_debug_full()
     print("🌱 เริ่มวาง rafflesia ตัวที่ 3")
 
@@ -109,7 +109,7 @@ local function raff3_debug_full()
     end
     print("✅ วางยูนิตเรียบร้อยแล้ว")
 
-    -- รอ spawn ของยูนิต
+    -- รอ spawn
     local entities = workspace:WaitForChild("Map"):WaitForChild("Entities")
     local newUnit = nil
     print("⏳ รอ spawn rafflesia...")
@@ -127,7 +127,8 @@ local function raff3_debug_full()
 
     -- ตรวจสอบ Attributes
     print("🔍 Attributes ของยูนิต:")
-    for k, v in pairs(newUnit:GetAttributes()) do
+    local attrs = newUnit:GetAttributes()
+    for k, v in pairs(attrs) do
         print(k, v)
     end
 
@@ -139,10 +140,16 @@ local function raff3_debug_full()
     end
     print("🔢 UID ของยูนิต:", unitId)
 
+    -- แสดง attribute สำคัญที่มักมีผลต่อ upgrade
+    print("🔹 ตรวจสอบ attribute สำคัญ:")
+    print("CanUpgrade:", newUnit:GetAttribute("CanUpgrade"))
+    print("Level:", newUnit:GetAttribute("Level"))
+    print("Cost:", newUnit:GetAttribute("Cost"))
+
     -- รอ Seeds ≥ 8000
     print("⏳ รอ Seeds ≥ 8000...")
     waitUntilSeeds(8000)
-    task.wait(1) -- รอให้ server อัปเดต state
+    task.wait(1)
 
     -- UpgradeUnit: ลองหลายรูปแบบ
     local upgradeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit")
