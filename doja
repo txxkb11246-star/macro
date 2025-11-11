@@ -1,151 +1,159 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = game.Players.LocalPlayer
 
+-- ===== ฟังก์ชันช่วย =====
 -- ฟังก์ชันรอจน Seeds >= target
 local function waitUntilSeeds(target)
-	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
-	local seedText = gui.Screen.Bottom.CurrencyDisplay.SeedsDisplay.Title
+    local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
+    local seedText = gui.Screen.Bottom.CurrencyDisplay.SeedsDisplay.Title
 
-	local function parse(str)
-		local cleaned = str:gsub("[^%d]", "")
-		return tonumber(cleaned) or 0
-	end
+    local function parse(str)
+        local cleaned = str:gsub("[^%d]", "")
+        return tonumber(cleaned) or 0
+    end
 
-	repeat
-		task.wait(0.3)
-		print("Seed ตอนนี้:", parse(seedText.Text))
-	until parse(seedText.Text) >= target
+    repeat
+        task.wait(0.3)
+        print("Seed ตอนนี้:", parse(seedText.Text))
+    until parse(seedText.Text) >= target
 end
 
 -- ===== ฟังก์ชันเกม =====
-
 local function playagain()
-	local ok, err = pcall(function()
-		ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("RestartGame"):InvokeServer()
-	end)
-	if not ok then
-		warn("❌ RestartGame failed:", err)
-	else
-		print("✅ เริ่มเกมใหม่แล้ว")
-	end
+    local ok, err = pcall(function()
+        ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("RestartGame"):InvokeServer()
+    end)
+    if not ok then
+        warn("❌ RestartGame failed:", err)
+    else
+        print("✅ เริ่มเกมใหม่แล้ว")
+    end
 end
 
 local function selectmode()
-	local args = {"dif_apocalypse"}
-	local ok, err = pcall(function()
-		ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceDifficultyVote"):InvokeServer(unpack(args))
-	end)
-	if not ok then warn("❌ PlaceDifficultyVote failed:", err) end
+    local args = {"dif_apocalypse"}
+    local ok, err = pcall(function()
+        ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceDifficultyVote"):InvokeServer(unpack(args))
+    end)
+    if not ok then warn("❌ PlaceDifficultyVote failed:", err) end
 end
 
 local function raff1()
-	local args = {
-		"unit_rafflesia",
-		{
-			Valid = true,
-			PathIndex = 1,
-			Position = vector.create(51.551246643066406, -21.75, -54.6295280456543),
-			DistanceAlongPath = 5.913198724685674,
-			CF = CFrame.new(51.551246643066406, -21.75, -54.6295280456543,
-				0.7071068286895752, 0, -0.7071067690849304,
-				0, 1, 0,
-				0.7071068286895752, 0, 0.7071067690849304),
-			Rotation = 180
-		}
-	}
-	local ok, err = pcall(function()
-		ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
-	end)
-	if not ok then warn("❌ PlaceUnit raff1 failed:", err) end
+    local args = {
+        "unit_rafflesia",
+        {
+            Valid = true,
+            PathIndex = 1,
+            Position = vector.create(51.551246643066406, -21.75, -54.6295280456543),
+            DistanceAlongPath = 5.913198724685674,
+            CF = CFrame.new(51.551246643066406, -21.75, -54.6295280456543,
+                0.7071068286895752, 0, -0.7071067690849304,
+                0, 1, 0,
+                0.7071068286895752, 0, 0.7071067690849304),
+            Rotation = 180
+        }
+    }
+    local ok, err = pcall(function()
+        ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+    end)
+    if not ok then warn("❌ PlaceUnit raff1 failed:", err) end
 end
 
 local function raff2()
-	local args = {
-		"unit_rafflesia",
-		{
-			Valid = true,
-			PathIndex = 2,
-			Position = vector.create(-54.302581787109375, -21.75, -53.1189079284668),
-			DistanceAlongPath = 8.049594790874286,
-			CF = CFrame.new(-54.302581787109375, -21.75, -53.1189079284668,
-				0.7071068286895752, 0, 0.7071067690849304,
-				0, 1, 0,
-				-0.7071068286895752, 0, 0.7071067690849304),
-			Rotation = 180
-		}
-	}
-	local ok, err = pcall(function()
-		ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
-	end)
-	if not ok then warn("❌ PlaceUnit raff2 failed:", err) end
+    local args = {
+        "unit_rafflesia",
+        {
+            Valid = true,
+            PathIndex = 2,
+            Position = vector.create(-54.302581787109375, -21.75, -53.1189079284668),
+            DistanceAlongPath = 8.049594790874286,
+            CF = CFrame.new(-54.302581787109375, -21.75, -53.1189079284668,
+                0.7071068286895752, 0, 0.7071067690849304,
+                0, 1, 0,
+                -0.7071068286895752, 0, 0.7071067690849304),
+            Rotation = 180
+        }
+    }
+    local ok, err = pcall(function()
+        ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+    end)
+    if not ok then warn("❌ PlaceUnit raff2 failed:", err) end
 end
 
--- raff3: วาง + รอ spawn + ดึง UID จาก Attributes + รอ Seeds ≥ 8000 + อัปเกรด
+-- raff3: วาง + รอ spawn + ดึง UID จาก Attributes + รอ Seeds ≥ 8000 + อัปเกรด (debug-ready)
 local function raff3()
-	print("🌱 วาง rafflesia ตัวที่ 3")
+    print("🌱 เริ่มวาง rafflesia ตัวที่ 3")
 
-	local args = {
-		"unit_rafflesia",
-		{
-			Valid = true,
-			PathIndex = 1,
-			Position = vector.create(51.909950256347656, -21.75, -54.98823165893555),
-			DistanceAlongPath = 5.405915231144293,
-			CF = CFrame.new(51.909950256347656, -21.75, -54.98823165893555,
-				0.7071068286895752, 0, -0.7071067690849304,
-				0, 1, 0,
-				0.7071068286895752, 0, 0.7071067690849304),
-			Rotation = 180
-		}
-	}
+    local args = {
+        "unit_rafflesia",
+        {
+            Valid = true,
+            PathIndex = 1,
+            Position = vector.create(51.909950256347656, -21.75, -54.98823165893555),
+            DistanceAlongPath = 5.405915231144293,
+            CF = CFrame.new(51.909950256347656, -21.75, -54.98823165893555,
+                0.7071068286895752, 0, -0.7071067690849304,
+                0, 1, 0,
+                0.7071068286895752, 0, 0.7071067690849304),
+            Rotation = 180
+        }
+    }
 
-	local placeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit")
-	local ok, _ = pcall(function()
-		placeRemote:InvokeServer(unpack(args))
-	end)
-	if not ok then
-		warn("❌ PlaceUnit raff3 failed")
-		return
-	end
+    local placeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit")
+    local ok, err = pcall(function()
+        placeRemote:InvokeServer(unpack(args))
+    end)
+    if not ok then
+        warn("❌ PlaceUnit raff3 failed:", err)
+        return
+    end
+    print("✅ วางยูนิตเรียบร้อยแล้ว")
 
-	-- รอ spawn ของยูนิตใน workspace
-	local entities = workspace:WaitForChild("Map"):WaitForChild("Entities")
-	local newUnit = nil
-	print("⏳ รอ spawn rafflesia...")
+    -- รอ spawn ของยูนิตใน workspace
+    local entities = workspace:WaitForChild("Map"):WaitForChild("Entities")
+    local newUnit = nil
+    print("⏳ รอ spawn rafflesia...")
 
-	repeat
-		for _, u in pairs(entities:GetChildren()) do
-			if u.Name == "unit_rafflesia" and not u:GetAttribute("Checked") then
-				u:SetAttribute("Checked", true)
-				newUnit = u
-				break
-			end
-		end
-		task.wait(0.2)
-	until newUnit
+    repeat
+        for _, u in pairs(entities:GetChildren()) do
+            if u.Name == "unit_rafflesia" and not u:GetAttribute("Checked") then
+                u:SetAttribute("Checked", true)
+                newUnit = u
+                break
+            end
+        end
+        task.wait(0.2)
+    until newUnit
 
-	-- ดึง UID จาก Attributes
-	local unitId = newUnit:GetAttribute("ID") or newUnit:GetAttribute("UnitId")
-	if not unitId then
-		warn("❌ ไม่พบ UID ของ raff3 ใน Attributes")
-		return
-	end
-	print("🔢 UID ของยูนิต:", unitId)
+    print("✅ ยูนิต spawn แล้ว")
 
-	-- รอ Seeds ≥ 8000
-	print("⏳ รอ Seeds ≥ 8000 ก่อนอัปเกรด...")
-	waitUntilSeeds(8000)
+    -- ตรวจสอบ Attributes ทั้งหมด
+    local attrs = newUnit:GetAttributes()
+    print("Attributes ของยูนิต:", attrs)
 
-	-- อัปเกรดยูนิต
-	local upgradeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit")
-	local ok2, err = pcall(function()
-		upgradeRemote:InvokeServer(unitId)
-	end)
-	if not ok2 then
-		warn("❌ อัปเกรด raff3 ไม่สำเร็จ:", err)
-	else
-		print("✅ อัปเกรด raff3 เสร็จแล้ว!")
-	end
+    -- หา UID
+    local unitId = newUnit:GetAttribute("ID") or newUnit:GetAttribute("UnitId")
+    if not unitId then
+        warn("❌ ไม่พบ UID ของ raff3 ใน Attributes")
+        return
+    end
+    print("🔢 UID ของยูนิต:", unitId)
+
+    -- รอ Seeds ≥ 8000
+    print("⏳ รอ Seeds ≥ 8000 ก่อนอัปเกรด...")
+    waitUntilSeeds(8000)
+    task.wait(0.5) -- รอให้ระบบอัปเดตยูนิต
+
+    -- อัปเกรดยูนิต
+    local upgradeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit")
+    local ok2, err2 = pcall(function()
+        upgradeRemote:InvokeServer({UnitId = unitId}) -- ส่ง table แทน UID ตรง ๆ
+    end)
+    if not ok2 then
+        warn("❌ อัปเกรด raff3 ไม่สำเร็จ:", err2)
+    else
+        print("✅ อัปเกรด raff3 เสร็จแล้ว!")
+    end
 end
 
 -- ===== เรียกใช้งานทั้งหมด =====
@@ -157,4 +165,4 @@ raff1()
 task.wait(12)
 raff2()
 task.wait(54)
-raff3() -- วางตัว 3 รอ UID จาก Attributes และ Seeds ≥ 8000 แล้วอัปเกรด
+raff3()
