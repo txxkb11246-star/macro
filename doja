@@ -2,7 +2,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = game.Players.LocalPlayer
 
 -- ===== ฟังก์ชันช่วย =====
--- ฟังก์ชันรอจน Seeds ≥ target
 local function waitUntilSeeds(target)
     local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
     local seedText = gui.Screen.Bottom.CurrencyDisplay.SeedsDisplay.Title
@@ -80,8 +79,8 @@ local function raff2()
     if not ok then warn("❌ PlaceUnit raff2 failed:", err) end
 end
 
--- raff3_debug_full: วาง + รอ spawn + ตรวจสอบ Attributes + รอ Seeds + Upgrade + debug
-local function raff3_debug_full()
+-- ===== raff3 พร้อมรออัปเกรดจริง =====
+local function raff3_upgrade_wait()
     print("🌱 เริ่มวาง rafflesia ตัวที่ 3")
 
     local argsPlace = {
@@ -125,13 +124,6 @@ local function raff3_debug_full()
     until newUnit
     print("✅ ยูนิต spawn แล้ว")
 
-    -- ตรวจสอบ Attributes
-    print("🔍 Attributes ของยูนิต:")
-    local attrs = newUnit:GetAttributes()
-    for k, v in pairs(attrs) do
-        print(k, v)
-    end
-
     -- หา UID
     local unitId = newUnit:GetAttribute("ID") or newUnit:GetAttribute("UnitId")
     if not unitId then
@@ -140,38 +132,43 @@ local function raff3_debug_full()
     end
     print("🔢 UID ของยูนิต:", unitId)
 
-    -- แสดง attribute สำคัญที่มักมีผลต่อ upgrade
-    print("🔹 ตรวจสอบ attribute สำคัญ:")
-    print("CanUpgrade:", newUnit:GetAttribute("CanUpgrade"))
-    print("Level:", newUnit:GetAttribute("Level"))
-    print("Cost:", newUnit:GetAttribute("Cost"))
-
     -- รอ Seeds ≥ 8000
     print("⏳ รอ Seeds ≥ 8000...")
     waitUntilSeeds(8000)
     task.wait(1)
 
-    -- UpgradeUnit: ลองหลายรูปแบบ
-    local upgradeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit")
-    local attempts = {
-        {unitId},                  -- UID ตรง ๆ
-        {{UnitId = unitId}},       -- table แบบ {UnitId=...}
-        {{ID = unitId}}            -- table แบบ {ID=...}
-    }
+    -- เก็บ Level ก่อน upgrade
+    local oldLevel = newUnit:GetAttribute("Level") or 0
+    print("🔹 Level ก่อน upgrade:", oldLevel)
 
-    for i, argsUpgrade in ipairs(attempts) do
-        print(string.format("🚀 ลอง upgrade แบบ %d args:", i), argsUpgrade)
-        local ok2, response = pcall(function()
-            return upgradeRemote:InvokeServer(unpack(argsUpgrade))
-        end)
-        print("✅ UpgradeUnit response:", ok2, response)
-        if ok2 and response ~= false then
-            print("🎉 Upgrade สำเร็จแบบที่", i)
+    -- ส่ง UpgradeUnit
+    local upgradeRemote = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit")
+    local argsUpgrade = {{UnitId = unitId}}  -- format ที่ server รับ
+    local ok2, response = pcall(function()
+        return upgradeRemote:InvokeServer(unpack(argsUpgrade))
+    end)
+    print("✅ UpgradeUnit response:", ok2, response)
+    if not ok2 or response == false then
+        warn("❌ UpgradeUnit ล้มเหลว")
+        return
+    end
+
+    -- รอจน Level เปลี่ยน (อัปเกรดจริง)
+    print("⏳ รอจนยูนิตอัปเกรดเสร็จจริง...")
+    local timeout = 15 -- วินาที
+    local timer = 0
+    repeat
+        local currentLevel = newUnit:GetAttribute("Level") or 0
+        if currentLevel > oldLevel then
+            print("🎉 Upgrade สำเร็จ! Level:", currentLevel)
             break
-        else
-            print("❌ Upgrade ล้มเหลวแบบที่", i)
         end
         task.wait(0.5)
+        timer = timer + 0.5
+    until timer >= timeout
+
+    if timer >= timeout then
+        warn("⚠️ Upgrade timeout: ยูนิตยังไม่อัปเกรดในเวลา 15 วินาที")
     end
 end
 
@@ -184,4 +181,4 @@ raff1()
 task.wait(12)
 raff2()
 task.wait(54)
-raff3_debug_full()
+raff3_upgrade_wait()
