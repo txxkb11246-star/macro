@@ -1,45 +1,28 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = game.Players.LocalPlayer
 
--- helper แปลงข้อความเป็นตัวเลข
+-- ฟังก์ชันแปลงตัวเลขจาก string เช่น "$14,635" → 14635
 local function parseNumber(str)
 	str = tostring(str or "")
 	local cleaned = str:gsub("[^%d]", "")
 	return tonumber(cleaned) or 0
 end
 
--- ✅ ฟังก์ชันตรวจจับเงิน (พร้อม debug)
+-- ✅ ฟังก์ชันรอจนเงิน >= target
 local function waitUntilCash(target)
+	print("🟡 [waitUntilCash] เริ่มตรวจจับเงิน...")
+
 	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
-	local currencyDisplay = gui:WaitForChild("CurrencyDisplay")
+	local cashLabel = gui:WaitForChild("CurrencyDisplay"):WaitForChild("Cash")
 
-	-- หาว่า Cash อยู่ในระดับไหน
-	local cashObj = currencyDisplay:FindFirstChild("Cash")
-	if not cashObj then
-		warn("❌ ไม่พบวัตถุ 'Cash' ใน CurrencyDisplay")
-		return
-	end
-
-	print("🔎 พบ Cash object:", cashObj:GetFullName())
-
-	local currentValue = 0
 	while true do
-		local textValue = nil
+		local cashText = cashLabel.Text
+		local cashValue = parseNumber(cashText)
 
-		-- ตรวจทั้ง 2 แบบ: Cash.Text และ Cash.TextLabel.Text
-		if cashObj:IsA("TextLabel") then
-			textValue = cashObj.Text
-		elseif cashObj:FindFirstChild("TextLabel") then
-			textValue = cashObj.TextLabel.Text
-		else
-			warn("⚠️ Cash object ไม่มี Text หรือ TextLabel ภายใน")
-		end
+		print("💵 เงินตอนนี้:", cashValue)
 
-		currentValue = parseNumber(textValue)
-		print("💵 เงินตอนนี้ =", currentValue)
-
-		if currentValue >= target then
-			print("💰 เงินถึงเป้าหมายแล้ว:", target)
+		if cashValue >= target then
+			print("💰 ถึงเป้าหมายแล้ว:", target)
 			break
 		end
 
@@ -47,28 +30,22 @@ local function waitUntilCash(target)
 	end
 end
 
--- 🔹 ฟังก์ชันเริ่มเกมใหม่
+-- ฟังก์ชันหลัก
 local function playagain()
-	local ok, err = pcall(function()
+	pcall(function()
 		ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("RestartGame"):InvokeServer()
 	end)
-	if not ok then
-		warn("❌ RestartGame failed:", err)
-	else
-		print("✅ เริ่มเกมใหม่แล้ว")
-	end
+	print("✅ เริ่มเกมใหม่แล้ว")
 end
 
--- 🔹 ฟังก์ชันเลือกโหมด
 local function selectmode()
 	local args = {"dif_apocalypse"}
-	local ok, err = pcall(function()
+	pcall(function()
 		ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceDifficultyVote"):InvokeServer(unpack(args))
 	end)
-	if not ok then warn("❌ PlaceDifficultyVote failed:", err) end
+	print("✅ โหวตโหมดแล้ว")
 end
 
--- 🔹 ฟังก์ชันวาง Rafflesia 1
 local function raff1()
 	local args = {
 		"unit_rafflesia",
@@ -84,13 +61,12 @@ local function raff1()
 			Rotation = 180
 		}
 	}
-	local ok, err = pcall(function()
+	pcall(function()
 		ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 	end)
-	if not ok then warn("❌ PlaceUnit raff1 failed:", err) end
+	print("✅ วาง raff1 แล้ว")
 end
 
--- 🔹 ฟังก์ชันวาง Rafflesia 2
 local function raff2()
 	local args = {
 		"unit_rafflesia",
@@ -106,14 +82,17 @@ local function raff2()
 			Rotation = 180
 		}
 	}
-	local ok, err = pcall(function()
+	pcall(function()
 		ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 	end)
-	if not ok then warn("❌ PlaceUnit raff2 failed:", err) end
+	print("✅ วาง raff2 แล้ว")
 end
 
--- 🔹 ลำดับการทำงาน
+-- ลำดับการทำงาน
+print("▶️ เริ่มลำดับการทำงาน")
+
 playagain()
+task.wait(6)
 selectmode()
 task.wait(6)
 
