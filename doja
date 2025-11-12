@@ -1,51 +1,59 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = game.Players.LocalPlayer
 
--- ฟังก์ชันแปลงตัวเลขจาก string เช่น "$14,635" → 14635
+-- 🟢 แปลง string เป็นตัวเลข เช่น "$14,635" → 14635
 local function parseNumber(str)
 	str = tostring(str or "")
 	local cleaned = str:gsub("[^%d]", "")
 	return tonumber(cleaned) or 0
 end
 
--- ✅ ฟังก์ชันรอจนเงิน >= target
+-- 🟢 รอจนเงินถึงเป้าหมาย
 local function waitUntilCash(target)
-	print("🟡 [waitUntilCash] เริ่มตรวจจับเงิน...")
+	print("🟡 เริ่มตรวจจับเงิน...")
 
 	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
-	local cashLabel = gui:WaitForChild("CurrencyDisplay"):WaitForChild("Cash")
+	local screen = gui:WaitForChild("Screen")
+	local bottom = screen:WaitForChild("Bottom")
+	local display = bottom:WaitForChild("CurrencyDisplay")
+	local cashLabel = display:WaitForChild("Cash")
 
 	while true do
-		local cashText = cashLabel.Text
-		local cashValue = parseNumber(cashText)
-
+		local cashValue = parseNumber(cashLabel.Text)
 		print("💵 เงินตอนนี้:", cashValue)
 
 		if cashValue >= target then
 			print("💰 ถึงเป้าหมายแล้ว:", target)
 			break
 		end
-
 		task.wait(1)
 	end
 end
 
--- ฟังก์ชันหลัก
+-- 🟢 ฟังก์ชันเริ่มเกมใหม่
 local function playagain()
-	pcall(function()
+	local ok, err = pcall(function()
 		ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("RestartGame"):InvokeServer()
 	end)
-	print("✅ เริ่มเกมใหม่แล้ว")
+	if not ok then
+		warn("❌ RestartGame failed:", err)
+	else
+		print("✅ เริ่มเกมใหม่แล้ว")
+	end
 end
 
+-- 🟢 ฟังก์ชันเลือกโหมด
 local function selectmode()
 	local args = {"dif_apocalypse"}
-	pcall(function()
+	local ok, err = pcall(function()
 		ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceDifficultyVote"):InvokeServer(unpack(args))
 	end)
-	print("✅ โหวตโหมดแล้ว")
+	if not ok then warn("❌ PlaceDifficultyVote failed:", err)
+	else print("✅ โหวตโหมดแล้ว")
+	end
 end
 
+-- 🟢 ฟังก์ชันวาง raff1
 local function raff1()
 	local args = {
 		"unit_rafflesia",
@@ -67,6 +75,7 @@ local function raff1()
 	print("✅ วาง raff1 แล้ว")
 end
 
+-- 🟢 ฟังก์ชันวาง raff2
 local function raff2()
 	local args = {
 		"unit_rafflesia",
@@ -88,7 +97,7 @@ local function raff2()
 	print("✅ วาง raff2 แล้ว")
 end
 
--- ลำดับการทำงาน
+-- 🧩 ลำดับการทำงานหลัก
 print("▶️ เริ่มลำดับการทำงาน")
 
 playagain()
@@ -103,3 +112,4 @@ waitUntilCash(3000)
 raff2()
 
 task.wait(54)
+print("🏁 สคริปต์ทำงานครบแล้ว")
