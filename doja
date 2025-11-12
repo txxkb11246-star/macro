@@ -1,21 +1,27 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = game.Players.LocalPlayer
 
--- 🔹 ฟังก์ชันตรวจจับเงินใน GUI
+-- helper: แปลง string เป็นตัวเลข
+local function parseNumber(str)
+	str = tostring(str or "")
+	local cleaned = str:gsub("[^%d]", "")
+	return tonumber(cleaned) or 0
+end
+
+-- 🔹 ฟังก์ชันรอจนเงินถึงเป้าหมาย
 local function waitUntilCash(target)
 	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
-	local cashText = gui.Screen.Bottom.CurrencyDisplay.Cash.Text
+	local cashLabel = gui:WaitForChild("CurrencyDisplay"):WaitForChild("Cash")
 
-	local function parseNumber(str)
-		local cleaned = str:gsub("[^%d]", "")
-		return tonumber(cleaned) or 0
-	end
-
-	while parseNumber(cashText) < target do
+	while true do
+		local currentCash = parseNumber(cashLabel.Text)
+		-- print("💵 เงินตอนนี้:", currentCash) -- (เปิดดีบั๊กได้)
+		if currentCash >= target then
+			print("💰 เงินถึงเป้าหมายแล้ว:", target)
+			break
+		end
 		task.wait(1)
 	end
-
-	print("💰 เงินถึงเป้าหมายแล้ว:", target)
 end
 
 -- 🔹 ฟังก์ชันเริ่มเกมใหม่
@@ -88,10 +94,10 @@ playagain()
 selectmode()
 task.wait(6)
 
--- รอเงิน >= 100 ก่อนวาง raff1 (แก้เลขได้ตามต้องการ)
 waitUntilCash(100)
 raff1()
-waitUntilCash(3000)
+
+waitUntilCash(1250)
 raff2()
 
 task.wait(54)
