@@ -85,16 +85,13 @@ end
 
 -- 🔹 ลำดับการทำงานหลัก
 playagain()
-task.wait(6)
 selectmode()
 task.wait(6)
 
 -- รอเงิน >= 100 ก่อนวาง raff1 (แก้เลขได้ตามต้องการ)
 waitUntilCash(100)
 raff1()
-
-task.wait(12)
-waitUntilCash(4000)
+waitUntilCash(3000)
 raff2()
 
 task.wait(54)
