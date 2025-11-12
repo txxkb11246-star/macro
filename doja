@@ -1,25 +1,48 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = game.Players.LocalPlayer
 
--- helper: แปลง string เป็นตัวเลข
+-- helper แปลงข้อความเป็นตัวเลข
 local function parseNumber(str)
 	str = tostring(str or "")
 	local cleaned = str:gsub("[^%d]", "")
 	return tonumber(cleaned) or 0
 end
 
--- 🔹 ฟังก์ชันรอจนเงินถึงเป้าหมาย
+-- ✅ ฟังก์ชันตรวจจับเงิน (พร้อม debug)
 local function waitUntilCash(target)
 	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
-	local cashLabel = gui:WaitForChild("CurrencyDisplay"):WaitForChild("Cash")
+	local currencyDisplay = gui:WaitForChild("CurrencyDisplay")
 
+	-- หาว่า Cash อยู่ในระดับไหน
+	local cashObj = currencyDisplay:FindFirstChild("Cash")
+	if not cashObj then
+		warn("❌ ไม่พบวัตถุ 'Cash' ใน CurrencyDisplay")
+		return
+	end
+
+	print("🔎 พบ Cash object:", cashObj:GetFullName())
+
+	local currentValue = 0
 	while true do
-		local currentCash = parseNumber(cashLabel.Text)
-		-- print("💵 เงินตอนนี้:", currentCash) -- (เปิดดีบั๊กได้)
-		if currentCash >= target then
+		local textValue = nil
+
+		-- ตรวจทั้ง 2 แบบ: Cash.Text และ Cash.TextLabel.Text
+		if cashObj:IsA("TextLabel") then
+			textValue = cashObj.Text
+		elseif cashObj:FindFirstChild("TextLabel") then
+			textValue = cashObj.TextLabel.Text
+		else
+			warn("⚠️ Cash object ไม่มี Text หรือ TextLabel ภายใน")
+		end
+
+		currentValue = parseNumber(textValue)
+		print("💵 เงินตอนนี้ =", currentValue)
+
+		if currentValue >= target then
 			print("💰 เงินถึงเป้าหมายแล้ว:", target)
 			break
 		end
+
 		task.wait(1)
 	end
 end
@@ -89,7 +112,7 @@ local function raff2()
 	if not ok then warn("❌ PlaceUnit raff2 failed:", err) end
 end
 
--- 🔹 ลำดับการทำงานหลัก
+-- 🔹 ลำดับการทำงาน
 playagain()
 selectmode()
 task.wait(6)
@@ -97,7 +120,7 @@ task.wait(6)
 waitUntilCash(100)
 raff1()
 
-waitUntilCash(1250)
+waitUntilCash(3000)
 raff2()
 
 task.wait(54)
