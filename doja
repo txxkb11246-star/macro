@@ -2,8 +2,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local player = game.Players.LocalPlayer
 
-local placedUnits = {}
-
 local function parseNumber(str)
 	str = tostring(str or "")
 	local cleaned = str:gsub("[^%d]", "")
@@ -43,6 +41,8 @@ local function waitForUnitId(unitName, timeout)
 	end
 	return nil
 end
+
+local placedUnits = {}
 
 local function placeUnit(unitName, position, pathIndex)
 	local args = {
@@ -86,7 +86,26 @@ local args = {
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceDifficultyVote"):InvokeServer(unpack(args))
 end
 
+function again()
+	local rs = game:GetService("ReplicatedStorage")
+	local rf = rs:WaitForChild("RemoteFunctions")
+	local restart = rf:WaitForChild("RestartGame")
+
+	local ok, result = pcall(function()
+		return restart:InvokeServer()
+	end)
+end
+
+local RemoteEvents = ReplicatedStorage:WaitForChild("RemoteEvents")
+local ShowGameEnd = RemoteEvents:WaitForChild("ShowGameEnd")
+
+ShowGameEnd.OnClientEvent:Connect(function(...)
+	task.wait(2)
+	again()
+end)
+
 ChooseMode()
+task.wait(5)
 local id1 = placeUnit("unit_rafflesia", Vector3.new(52.80524826049805, -21.75, -55.88352966308594), 1)
 task.wait(13)
 local id2 = placeUnit("unit_rafflesia", Vector3.new(-51.1591796875, -21.75, -49.975502014160156), 2)
