@@ -83,15 +83,10 @@ local function upgradeUnitById(id)
 	end
 end
 
--- ==== เริ่มใช้งาน ====
-
--- วางตัวแรก
 local id1 = placeUnit("unit_rafflesia", Vector3.new(47.6, -21.75, -50.68), 1)
 
--- ✅ เพิ่มเวลาเว้นก่อนวางตัวต่อไป
-task.wait(5)  -- รอ 5 วินาที (เปลี่ยนเป็น 10 ได้ถ้าอยากรอนานขึ้น)
+waitUntilCash(1250)
 
--- วางตัวสอง
 local id2 = placeUnit("unit_rafflesia", Vector3.new(52, -21.75, -45), 1)
 
 waitUntilCash(8000)
