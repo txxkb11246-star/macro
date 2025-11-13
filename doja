@@ -1,17 +1,41 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local player = game.Players.LocalPlayer
-
+local RemoteEvents = ReplicatedStorage:WaitForChild("RemoteEvents")
+local ShowGameEnd = RemoteEvents:WaitForChild("ShowGameEnd")
 local placedUnits = {}
 
--- 🧮 แปลง string เงิน
+function again()
+	local rs = game:GetService("ReplicatedStorage")
+	local rf = rs:WaitForChild("RemoteFunctions")
+	local restart = rf:WaitForChild("RestartGame")
+
+	local ok, result = pcall(function()
+		return restart:InvokeServer()
+	end)
+end
+
+ShowGameEnd.OnClientEvent:Connect(function(...)
+	task.wait(2)
+	again()
+end)
+
+local function ChooseMode()
+	local args = {
+		"dif_impossible"
+	}
+	game:GetService("ReplicatedStorage")
+		:WaitForChild("RemoteFunctions")
+		:WaitForChild("PlaceDifficultyVote")
+		:InvokeServer(unpack(args))
+end
+
 local function parseNumber(str)
 	str = tostring(str or "")
 	local cleaned = str:gsub("[^%d]", "")
 	return tonumber(cleaned) or 0
 end
 
--- 💰 รอจนเงินถึงเป้าหมาย
 local function waitUntilCash(target)
 	print("🟡 รอตรวจสอบเงิน...")
 	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
@@ -28,7 +52,6 @@ local function waitUntilCash(target)
 	end
 end
 
--- 🕒 รอ unit spawn และดึงค่า Attribute "ID"
 local function waitForUnitId(unitName, timeout)
 	timeout = timeout or 5
 	local startTime = tick()
@@ -47,7 +70,6 @@ local function waitForUnitId(unitName, timeout)
 	return nil
 end
 
--- 🧱 วาง unit
 local function placeUnit(unitName, position, pathIndex)
 	local args = {
 		unitName,
