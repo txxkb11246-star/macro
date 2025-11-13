@@ -83,9 +83,9 @@ local function upgradeUnitById(id)
 	end
 end
 
-local id1 = placeUnit("unit_rafflesia", Vector3.new(47.6, -21.75, -50.68), 1)
-task.wait(6)
-local id2 = placeUnit("unit_rafflesia", Vector3.new(-54.73804473876953, -21.75, -53.55436706542969), 2)
+local id1 = placeUnit("unit_rafflesia", Vector3.new(52.80524826049805, -21.75, -55.88352966308594), 1)
+task.wait(12)
+local id2 = placeUnit("unit_rafflesia", Vector3.new(-51.1591796875, -21.75, -49.975502014160156), 2)
 task.wait(54)
 local id3 = placeUnit("unit_rafflesia", Vector3.new(52.678672790527344, -21.75, -55.75695037841797), 3)
 waitUntilCash(8000)
