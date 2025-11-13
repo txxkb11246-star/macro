@@ -74,14 +74,7 @@ local function upgradeUnitById(id)
     end
 end
 
--- === ตัวอย่างใช้งาน ===
-waitUntilCash(8000)
-
--- วางหลาย unit และเก็บ id ของแต่ละตัว
 local id1 = placeUnit("unit_rafflesia", Vector3.new(47.6, -21.75, -50.68), 1)
-local id2 = placeUnit("unit_lawnmower", Vector3.new(50, -21.75, -48), 2)
-local id3 = placeUnit("unit_tower", Vector3.new(52, -21.75, -46), 1)
 
--- อัปเกรดเฉพาะ unit ที่ต้องการ
-upgradeUnitById(id1) -- อัปเกรดตัวแรก
--- upgradeUnitById(id2) -- จะอัปเกรดตัวที่สอง ถ้าต้องการ
+waitUntilCash(8000)
+upgradeUnitById(id1)
