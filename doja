@@ -2,34 +2,28 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local player = game.Players.LocalPlayer
 
--- ตารางเก็บ unit ที่วางแล้ว {id = unitInstance}
 local placedUnitIds = {}
 
--- แปลง string เป็นตัวเลข เช่น "$14,635" → 14635
-local function parseNumber(str)
-    str = tostring(str or "")
-    local cleaned = str:gsub("[^%d]", "")
-    return tonumber(cleaned) or 0
-end
-
--- รอจนเงินถึงเป้าหมาย
-local function waitUntilCash(target)
-    print("🟡 รอตรวจสอบเงิน...")
-    local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
-    local cashLabel = gui:WaitForChild("Screen"):WaitForChild("Bottom"):WaitForChild("CurrencyDisplay"):WaitForChild("Cash")
-
-    while true do
-        local cashValue = parseNumber(cashLabel.Text)
-        print("💵 เงินตอนนี้:", cashValue)
-        if cashValue >= target then
-            print("💰 เงินถึงเป้าหมาย:", target)
-            break
+-- ฟังก์ชันรอจน unit spawn และมี id
+local function waitForUnitId(unitName, timeout)
+    timeout = timeout or 5 -- รอได้สูงสุด 5 วินาที
+    local startTime = tick()
+    
+    while tick() - startTime < timeout do
+        local entitiesFolder = Workspace:WaitForChild("Map"):WaitForChild("Entities")
+        for _, unit in pairs(entitiesFolder:GetChildren()) do
+            if unit.Name == unitName and unit:GetAttribute("id") and not placedUnitIds[unit:GetAttribute("id")] then
+                local id = unit:GetAttribute("id")
+                placedUnitIds[id] = unit
+                return id
+            end
         end
-        task.wait(1)
+        task.wait(0.1)
     end
+    return nil -- ถ้า timeout
 end
 
--- วาง unit และเก็บ id
+-- วาง unit และรอ id
 local function placeUnit(unitName, position, pathIndex)
     local args = {
         unitName,
@@ -43,38 +37,31 @@ local function placeUnit(unitName, position, pathIndex)
         }
     }
 
-    -- เรียก server วาง unit
     ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
     
-    -- รอสักครู่ให้ unit spawn ใน Workspace
-    task.wait(0.5)
-
-    -- ตรวจสอบ unit ที่ spawn ใหม่ใน Workspace.Map.Entities
-    local entitiesFolder = Workspace:WaitForChild("Map"):WaitForChild("Entities")
-    for _, unit in pairs(entitiesFolder:GetChildren()) do
-        if unit.Name == unitName and not placedUnitIds[unit:GetAttribute("id")] then
-            local id = unit:GetAttribute("id")
-            if id then
-                placedUnitIds[id] = unit
-                print("✅ วาง unit:", unitName, "ID:", id)
-                return id -- ส่ง id ของ unit ที่วางไป
-            end
-        end
+    -- รอจน unit spawn และมี id
+    local id = waitForUnitId(unitName, 5)
+    if id then
+        print("✅ วาง unit:", unitName, "ID:", id)
+        return id
+    else
+        warn("❌ ไม่พบ unit id ของ", unitName)
+        return nil
     end
 end
 
 -- อัปเกรด unit ตาม id
 local function upgradeUnitById(id)
     if placedUnitIds[id] then
-        local args = {id}
-        ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit"):InvokeServer(unpack(args))
+        ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit"):InvokeServer(id)
         print("🔼 อัปเกรด unit ID:", id)
     else
         print("❌ ไม่พบ unit ID:", id)
     end
 end
 
+-- ตัวอย่างใช้งาน
 local id1 = placeUnit("unit_rafflesia", Vector3.new(47.6, -21.75, -50.68), 1)
-
-waitUntilCash(8000)
-upgradeUnitById(id1)
+if id1 then
+    upgradeUnitById(id1)
+end
