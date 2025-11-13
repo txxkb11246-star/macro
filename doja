@@ -80,13 +80,10 @@ local function upgradeUnitById(id)
 end
 
 local function ChooseMode()
-	local args = {
-		"dif_impossible"
-	}
-	game:GetService("ReplicatedStorage")
-		:WaitForChild("RemoteFunctions")
-		:WaitForChild("PlaceDifficultyVote")
-		:InvokeServer(unpack(args))
+local args = {
+	"dif_apocalypse"
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceDifficultyVote"):InvokeServer(unpack(args))
 end
 
 ChooseMode()
