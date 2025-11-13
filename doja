@@ -104,6 +104,7 @@ ShowGameEnd.OnClientEvent:Connect(function(...)
 	again()
 end)
 
+again()
 ChooseMode()
 task.wait(5)
 local id1 = placeUnit("unit_rafflesia", Vector3.new(52.80524826049805, -21.75, -55.88352966308594), 1)
