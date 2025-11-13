@@ -85,9 +85,7 @@ end
 
 local id1 = placeUnit("unit_rafflesia", Vector3.new(47.6, -21.75, -50.68), 1)
 
-waitUntilCash(1250)
-
-local id2 = placeUnit("unit_rafflesia", Vector3.new(52, -21.75, -45), 1)
+local id2 = placeUnit("unit_rafflesia", Vector3.new(-54.73804473876953, -21.75, -53.55436706542969), 2)
 
 waitUntilCash(8000)
 upgradeUnitById(id1)
