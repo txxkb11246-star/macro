@@ -1,235 +1,125 @@
---==================================================
--- 🌿 SCRIPT รวม AUTO FARM + สุ่มตำแหน่ง + GUI เปิด/ปิด + ป้ายข้อความบนสุดกลางจอ
---==================================================
-
--- ===============================
--- ตัวแปรควบคุมหลัก
--- ===============================
-local enabled = false
-local farmThread = nil
-local intervalRaff = 60
-local WAIT_AFTER_MODE_MIN = 5.5
-local WAIT_AFTER_MODE_MAX = 6
-local WAIT_AFTER_PLACE_MIN = 55
-local WAIT_AFTER_PLACE_MAX = 65
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RemoteFuncs = ReplicatedStorage:WaitForChild("RemoteFunctions")
-local PlaceUnit = RemoteFuncs:WaitForChild("PlaceUnit")
+local Workspace = game:GetService("Workspace")
 local player = game.Players.LocalPlayer
 
--- ===============================
--- ฟังก์ชันแสดงข้อความบนสุดกลางจอ
--- ===============================
-local function showTopMessage(text, duration)
-	local gui = Instance.new("ScreenGui")
-	gui.IgnoreGuiInset = true
-	gui.ResetOnSpawn = false
-	gui.Parent = player:WaitForChild("PlayerGui")
+local placedUnits = {}
 
-	local label = Instance.new("TextLabel")
-	label.AnchorPoint = Vector2.new(0.5, 0)
-	label.Position = UDim2.new(0.5, 0, 0, 20)
-	label.Size = UDim2.new(0.8, 0, 0, 80)
-	label.BackgroundTransparency = 0.4
-	label.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	label.TextColor3 = Color3.fromRGB(255, 255, 255)
-	label.Font = Enum.Font.SourceSansBold
-	label.Text = text
-	label.TextSize = 60
-	label.TextStrokeTransparency = 0
-	label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
-	label.TextWrapped = true
-	label.Parent = gui
-
-	task.delay(duration or 2, function()
-		gui:Destroy()
-	end)
+-- 🧮 แปลง string เป็นตัวเลข
+local function parseNumber(str)
+	str = tostring(str or "")
+	local cleaned = str:gsub("[^%d]", "")
+	return tonumber(cleaned) or 0
 end
 
--- ===============================
--- ฟังก์ชันสุ่มตำแหน่ง
--- ===============================
-local function randomPositionAround(pos, radius)
-	local randX = pos.X + (math.random() * 2 - 1) * radius
-	local randY = pos.Y
-	local randZ = pos.Z + (math.random() * 2 - 1) * radius
-	return Vector3.new(randX, randY, randZ)
-end
+-- 💰 รอจนเงินถึงเป้าหมาย
+local function waitUntilCash(target)
+	print("🟡 รอตรวจสอบเงิน...")
+	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
+	local cashLabel = gui:WaitForChild("Screen"):WaitForChild("Bottom"):WaitForChild("CurrencyDisplay"):WaitForChild("Cash")
 
--- ===============================
--- ฟังก์ชันเลือกโหมด
--- ===============================
-local function selectmode()
-	local args = {"dif_apocalypse"}
-	local ok, err = pcall(function()
-		RemoteFuncs:WaitForChild("PlaceDifficultyVote"):InvokeServer(unpack(args))
-	end)
-	if not ok then
-		warn("❌ PlaceDifficultyVote failed:", err)
+	while true do
+		local cashValue = parseNumber(cashLabel.Text)
+		print("💵 เงินตอนนี้:", cashValue)
+		if cashValue >= target then
+			print("💰 เงินถึงเป้าหมาย:", target)
+			break
+		end
+		task.wait(1)
 	end
 end
 
--- ===============================
--- ฟังก์ชันวางยูนิต
--- ===============================
-local function placeRafflesia(pathIndex, basePos, minDist, maxDist, radius)
-	radius = radius or 5
-	local newPos = randomPositionAround(basePos, radius)
-	local distanceAlong = (minDist or 7) + math.random() * ((maxDist or 10) - (minDist or 7))
+-- 🔎 รอจนเจอ ID ของ unit
+local function waitForUnitId(unitName, timeout)
+	timeout = timeout or 15
+	local startTime = tick()
+	while tick() - startTime < timeout do
+		local entities = Workspace:WaitForChild("Map"):WaitForChild("Entities")
+		for _, unit in pairs(entities:GetChildren()) do
+			local idAttr = unit:GetAttribute("ID")
+			if unit.Name == unitName and idAttr and not placedUnits[idAttr] then
+				placedUnits[idAttr] = unit
+				return idAttr
+			end
+		end
+		task.wait(0.2)
+	end
+	warn("❌ Timeout ไม่พบ unit:", unitName)
+	return nil
+end
 
-	local args = {
-		"unit_rafflesia",
-		{
-			Valid = true,
-			PathIndex = pathIndex,
-			Position = newPos,
-			DistanceAlongPath = distanceAlong,
-			CF = CFrame.new(newPos),
-			Rotation = 180
+-- 🟢 วาง unit แบบปลอดภัย (retry จนได้ ID)
+local function placeUnitSafe(unitName, position, pathIndex)
+	local id
+	local attempts = 0
+	repeat
+		attempts += 1
+		local args = {
+			unitName,
+			{
+				Valid = true,
+				PathIndex = pathIndex or 1,
+				Position = position,
+				DistanceAlongPath = 0,
+				CF = CFrame.new(position),
+				Rotation = 0
+			}
 		}
-	}
+		ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
 
-	local ok, err = pcall(function()
-		PlaceUnit:InvokeServer(unpack(args))
-	end)
-	if not ok then
-		warn("❌ PlaceUnit failed:", err)
-	end
+		id = waitForUnitId(unitName, 15)
 
-	return newPos
+		if not id then
+			warn("⚠️ ลองวาง unit อีกครั้ง ครั้งที่:", attempts)
+			task.wait(1)
+		end
+	until id or attempts >= 3 -- retry 3 ครั้ง
+	return id
 end
 
--- ===============================
--- raff1 / raff2
--- ===============================
-function raff1()
-	local basePos = Vector3.new(42.814170837402344, -21.75, -45.892452239990234)
-	placeRafflesia(1, basePos, 7, 10, 5)
-end
-
-function raff2()
-	local basePos = Vector3.new(-44.65868377685547, -21.75, -43.47500991821289)
-	placeRafflesia(2, basePos, 21, 24, 5)
-end
-
--- ===============================
--- raff3 + upgrade
--- ===============================
--- ===============================
--- raff3: วางแล้วรอ Seeds ≥ 8000 แล้วอัปเกรดยูนิตนั้น
--- ===============================
-function raff3()
-        local basePos = Vector3.new(42.814170837402344, -21.75, -45.892452239990234)
-    local newPos = randomPositionAround(basePos, 5)
-    
-    local args = {
-        "unit_rafflesia",
-        {
-            Valid = true,
-            PathIndex = 1,
-            Position = newPos,
-            DistanceAlongPath = 7 + math.random() * (10 - 7),
-            CF = CFrame.new(newPos),
-            Rotation = 180
-        }
-    }
-    PlaceUnit:InvokeServer(unpack(args))
-end
-
-
--- ===============================
--- รีสตาร์ทเกม
--- ===============================
-function playagain()
-	local ok, err = pcall(function()
-		RemoteFuncs:WaitForChild("RestartGame"):InvokeServer()
-	end)
-	if not ok then warn("❌ RestartGame failed:", err) end
-end
-
--- ===============================
--- ลูปหลัก
--- ===============================
-local function autoFarmLoop()
-	while enabled do
-		selectmode()
-		task.wait(math.random(WAIT_AFTER_MODE_MIN, WAIT_AFTER_MODE_MAX))
-		raff1()
-		task.wait(10)
-		raff2()
-		task.wait(34)
-		raff3_upgrade_wait()
-		task.wait(intervalRaff)
-		playagain()
-		task.wait(math.random(WAIT_AFTER_PLACE_MIN, WAIT_AFTER_PLACE_MAX))
-	end
-end
-
--- ===============================
--- GUI เปิด/ปิด
--- ===============================
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "JhonJustGUI"
-screenGui.ResetOnSpawn = false
-screenGui.Parent = player:WaitForChild("PlayerGui")
-
-local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 180, 0, 50)
-button.Position = UDim2.new(1, -190, 0, 10)
-button.BackgroundColor3 = Color3.fromRGB(100, 200, 255)
-button.TextColor3 = Color3.fromRGB(0, 0, 0)
-button.Font = Enum.Font.SourceSansBold
-button.TextSize = 20
-button.Text = "JhonJust : OFF"
-button.Parent = screenGui
-
--- ปุ่มลากได้
-local UIS = game:GetService("UserInputService")
-local dragging, dragStart, startPos, dragInput
-
-button.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = button.Position
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then dragging = false end
-		end)
-	end
-end)
-
-button.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement then
-		dragInput = input
-	end
-end)
-
-UIS.InputChanged:Connect(function(input)
-	if dragging and input == dragInput then
-		local delta = input.Position - dragStart
-		local newX = startPos.X.Offset + delta.X
-		local newY = startPos.Y.Offset + delta.Y
-		local viewport = workspace.CurrentCamera.ViewportSize
-		newX = math.clamp(newX, 0, viewport.X - button.AbsoluteSize.X)
-		newY = math.clamp(newY, 0, viewport.Y - button.AbsoluteSize.Y)
-		button.Position = UDim2.new(0, newX, 0, newY)
-	end
-end)
-
--- ===============================
--- ปุ่มเปิด/ปิดระบบ
--- ===============================
-button.MouseButton1Click:Connect(function()
-	if enabled then
-		enabled = false
-		button.Text = "JhonJust : OFF"
-		showTopMessage("😴 หยุดเถิดอานนท์", 3)
+-- ⬆️ อัปเกรด unit
+local function upgradeUnitById(id)
+	if placedUnits[id] then
+		local args = { id }
+		ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit"):InvokeServer(unpack(args))
+		print("🔼 อัปเกรด unit ID:", id)
 	else
-		enabled = true
-		button.Text = "JhonJust : ON"
-		showTopMessage("😎 กำลังเดินใจเย็นวัยรุ่น ...", 2)
-		if farmThread then task.cancel(farmThread) end
-		farmThread = task.spawn(autoFarmLoop)
+		print("❌ ไม่พบ unit ID:", id)
 	end
+end
+
+-- 🕹️ เลือกโหมดเกม
+local function ChooseMode()
+	local args = {"dif_apocalypse"}
+	ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceDifficultyVote"):InvokeServer(unpack(args))
+end
+
+-- 🔁 รีสตาร์ทเกม
+local function again()
+	local restart = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("RestartGame")
+	pcall(function()
+		restart:InvokeServer()
+	end)
+end
+
+-- 📢 ตรวจจับจบเกม
+local ShowGameEnd = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("ShowGameEnd")
+ShowGameEnd.OnClientEvent:Connect(function()
+	task.wait(2)
+	again()
 end)
+
+-- 🚀 เริ่มต้น
+again()
+ChooseMode()
+task.wait(5)
+
+-- วาง unit
+local id1 = placeUnitSafe("unit_rafflesia", Vector3.new(52.8052, -21.75, -55.8835), 1)
+task.wait(13)
+local id2 = placeUnitSafe("unit_rafflesia", Vector3.new(-51.1591, -21.75, -49.9755), 2)
+task.wait(54)
+local id3 = placeUnitSafe("unit_rafflesia", Vector3.new(52.6786, -21.75, -55.7569), 3)
+
+-- รอเงินแล้วอัปเกรด
+waitUntilCash(8000)
+upgradeUnitById(id3)
