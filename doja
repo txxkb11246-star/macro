@@ -75,25 +75,15 @@ local function placeRaff3()
 end
 
 -- ===============================
--- Auto Farm Loop
+-- เรียกใช้งานทีละตัวตามลำดับ
 -- ===============================
-local enabled = true -- ตั้งเป็น true เพื่อเริ่ม Auto Farm
-local intervalBetweenRounds = 60 -- เวลารอระหว่างรอบ Auto Farm
+local pos1 = placeRaff1()
+print("raff1 วางที่:", pos1)
+task.wait(13) -- รอให้ Server ประมวลผล
 
-task.spawn(function()
-	while enabled do
-		print("=== เริ่มรอบใหม่ ===")
-		
-		local pos1 = placeRaff1()
-		print("raff1 วางที่:", pos1)
-		task.wait(6) -- รอให้ Server ประมวลผล
+local pos2 = placeRaff2()
+print("raff2 วางที่:", pos2)
+task.wait(54)
 
-		local pos2 = placeRaff2()
-		print("raff2 วางที่:", pos2)
-		task.wait(6)
-
-		local pos3 = placeRaff3()
-		print("raff3 วางที่:", pos3)
-		task.wait(intervalBetweenRounds) -- รอรอบถัดไป
-	end
-end)
+local pos3 = placeRaff3()
+print("raff3 วางที่:", pos3)
