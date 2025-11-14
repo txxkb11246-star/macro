@@ -1,7 +1,6 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local PlaceUnit = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit")
 
--- ฟังก์ชันสุ่มตำแหน่งรอบ basePos
 local function randomPositionAround(pos, radius)
 	radius = radius or 5
 	return Vector3.new(
@@ -11,14 +10,12 @@ local function randomPositionAround(pos, radius)
 	)
 end
 
--- เก็บตำแหน่งล่าสุดของแต่ละยูนิต
 local lastPositions = {
 	raff1 = nil,
 	raff2 = nil,
 	raff3 = nil
 }
 
--- ฟังก์ชันวางยูนิตทีละตัว ไม่ให้ซ้ำตำแหน่งเดิม
 local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist, radius)
 	radius = radius or 5
 	local newPos
@@ -46,44 +43,37 @@ local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist
 	local ok, err = pcall(function()
 		PlaceUnit:InvokeServer(unpack(args))
 	end)
+
 	if not ok then
 		warn("❌ PlaceUnit failed:", err)
 	end
 
 	lastPositions[unitName] = newPos
+
+	-- ✅ เพิ่ม delay ให้ Server ประมวลผลเรียบร้อย
+	task.wait(6)
+
 	return newPos
 end
 
--- ตาราง base positions
 local unitBases = {
 	raff1 = Vector3.new(42.814, -21.75, -45.892),
 	raff2 = Vector3.new(-44.658, -21.75, -43.475),
 	raff3 = Vector3.new(41.676, -21.75, -44.754)
 }
 
--- ฟังก์ชันวางทีละตัว
-local function placeRaff1()
-	return placeUnitRafflesia("raff1", 1, unitBases.raff1, 7, 10, 5)
-end
-
-local function placeRaff2()
-	return placeUnitRafflesia("raff2", 2, unitBases.raff2, 21, 24, 5)
-end
-
-local function placeRaff3()
-	return placeUnitRafflesia("raff3", 1, unitBases.raff3, 7, 10, 5)
-end
+local function placeRaff1() return placeUnitRafflesia("raff1", 1, unitBases.raff1, 7, 10, 5) end
+local function placeRaff2() return placeUnitRafflesia("raff2", 2, unitBases.raff2, 21, 24, 5) end
+local function placeRaff3() return placeUnitRafflesia("raff3", 1, unitBases.raff3, 7, 10, 5) end
 
 -- ===============================
 -- เรียกใช้งานทีละตัวตามลำดับ
 -- ===============================
 local pos1 = placeRaff1()
 print("raff1 วางที่:", pos1)
-task.wait(13) -- รอให้ Server ประมวลผล
-
+task.wait(13)
 local pos2 = placeRaff2()
 print("raff2 วางที่:", pos2)
 task.wait(54)
-
 local pos3 = placeRaff3()
 print("raff3 วางที่:", pos3)
