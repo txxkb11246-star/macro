@@ -50,9 +50,7 @@ local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist
 		warn("❌ PlaceUnit failed:", err)
 	end
 
-	-- อัปเดตตำแหน่งล่าสุด
 	lastPositions[unitName] = newPos
-
 	return newPos
 end
 
@@ -77,26 +75,25 @@ local function placeRaff3()
 end
 
 -- ===============================
--- ตัวอย่างเรียกใช้งานตามลำดับ
+-- Auto Farm Loop
 -- ===============================
-print("วาง raff1 ที่:", placeRaff1())
-task.wait(6) -- รอ 6 วินาที
-print("วาง raff2 ที่:", placeRaff2())
-task.wait(6) -- รอ 6 วินาที
-print("วาง raff3 ที่:", placeRaff3())
+local enabled = true -- ตั้งเป็น true เพื่อเริ่ม Auto Farm
+local intervalBetweenRounds = 60 -- เวลารอระหว่างรอบ Auto Farm
 
--- วาง raff1
-local pos1 = placeRaff1()
-print("raff1 วางที่:", pos1)
+task.spawn(function()
+	while enabled do
+		print("=== เริ่มรอบใหม่ ===")
+		
+		local pos1 = placeRaff1()
+		print("raff1 วางที่:", pos1)
+		task.wait(6) -- รอให้ Server ประมวลผล
 
-task.wait(6)  -- รอเวลาตามที่คุณต้องการ
+		local pos2 = placeRaff2()
+		print("raff2 วางที่:", pos2)
+		task.wait(6)
 
--- วาง raff2
-local pos2 = placeRaff2()
-print("raff2 วางที่:", pos2)
-
-task.wait(6)
-
--- วาง raff3
-local pos3 = placeRaff3()
-print("raff3 วางที่:", pos3)
+		local pos3 = placeRaff3()
+		print("raff3 วางที่:", pos3)
+		task.wait(intervalBetweenRounds) -- รอรอบถัดไป
+	end
+end)
