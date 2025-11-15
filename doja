@@ -218,7 +218,7 @@ local function runGameLoop()
 			checkAbort()
 			upgradeUnitById(id3)
 
-			task.wait(30)
+			task.wait(15)
 			checkAbort()
 
 			waitUntilCash(8000)
