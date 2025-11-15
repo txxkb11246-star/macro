@@ -218,7 +218,7 @@ local function runGameLoop()
 			checkAbort()
 
 			-- raff2 → raff3
-			smartWait(66)
+			smartWait(70)
 
 			-- raff3
 			local pos3 = placeRaff3()
