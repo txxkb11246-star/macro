@@ -1,5 +1,5 @@
 -- ===============================
--- 🎮 Roblox Auto Game Loop Script (Stable + Auto-Speed)
+-- 🎮 Roblox Auto Game Loop Script (Stable + Auto-Speed + Raff2 Position ใหม่)
 -- ===============================
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -28,7 +28,7 @@ local function smartWait(t)
 end
 
 -- ===============================
--- 🔹 ฟังก์ชันสุ่มตำแหน่ง
+-- 🔹 ฟังก์ชันสุ่มตำแหน่งรอบ base
 -- ===============================
 local function randomPositionAround(pos, radius)
 	radius = radius or 5
@@ -41,6 +41,18 @@ end
 
 local lastPositions = { raff1=nil, raff2=nil, raff3=nil }
 
+-- ===============================
+-- 🔹 Base ของ raff (raff2 position ใหม่)
+-- ===============================
+local unitBases = {
+    raff1 = Vector3.new(42.814, -21.75, -45.892),
+    raff2 = Vector3.new(-36.93769454956055, -21.749000549316406, -29.748855590820312), -- position ใหม่
+    raff3 = Vector3.new(41.676, -21.75, -44.754)
+}
+
+-- ===============================
+-- 🔹 ฟังก์ชันวางยูนิต (สุ่มรอบ base)
+-- ===============================
 local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist, radius)
 	radius = radius or 5
 	local newPos
@@ -65,26 +77,35 @@ local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist
 		}
 	}
 
-	pcall(function()
+	local ok, err = pcall(function()
 		PlaceUnit:InvokeServer(unpack(args))
 	end)
+	if not ok then warn("PlaceUnit failed:", err) end
 
 	lastPositions[unitName] = newPos
 	return newPos
 end
 
 -- ===============================
--- 🔹 Base ของ raff
+-- 🔹 วาง raff1
 -- ===============================
-local unitBases = {
-	raff1 = Vector3.new(42.814, -21.75, -45.892),
-	raff2 = Vector3.new(-44.658, -21.75, -43.475),
-	raff3 = Vector3.new(41.676, -21.75, -44.754)
-}
+local function placeRaff1()
+	return placeUnitRafflesia("raff1", 1, unitBases.raff1, 7, 10, 5)
+end
 
-local function placeRaff1() return placeUnitRafflesia("raff1", 1, unitBases.raff1, 7, 10, 5) end
-local function placeRaff2() return placeUnitRafflesia("raff2", 2, unitBases.raff2, 21, 24, 5) end
-local function placeRaff3() return placeUnitRafflesia("raff3", 1, unitBases.raff3, 7, 10, 5) end
+-- ===============================
+-- 🔹 วาง raff2 (สุ่มรอบ position ใหม่)
+-- ===============================
+local function placeRaff2()
+	return placeUnitRafflesia("raff2", 2, unitBases.raff2, 21, 24, 5)
+end
+
+-- ===============================
+-- 🔹 วาง raff3
+-- ===============================
+local function placeRaff3()
+	return placeUnitRafflesia("raff3", 1, unitBases.raff3, 7, 10, 5)
+end
 
 -- ===============================
 -- 🔥 ระบบติดตาม + upgrade
@@ -164,14 +185,14 @@ local function upgradeUnitById(id)
 end
 
 -- ===============================
--- 🚀 Mode
+-- 🚀 เลือกโหมดเกม
 -- ===============================
 local function ChooseMode()
 	ReplicatedStorage.RemoteFunctions.PlaceDifficultyVote:InvokeServer("dif_apocalypse")
 end
 
 -- ===============================
--- 🔄 Restart
+-- 🔄 รีสตาร์ทเกม
 -- ===============================
 local function again()
 	pcall(function()
@@ -202,7 +223,6 @@ local function runGameLoop()
 	while true do
 		forceRestart = false
 		local ok, err = pcall(function()
-			
 			ChooseMode()
 			smartWait(5)
 			checkAbort()
@@ -252,6 +272,6 @@ local function runGameLoop()
 end
 
 -- ===============================
--- 🔥 Start
+-- 🔥 เริ่มทำงาน
 -- ===============================
 runGameLoop()
