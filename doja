@@ -176,14 +176,14 @@ local function runGameLoop()
 	local id1 = placeUnitSafe(pos1, 1)
 	print("🆔 raff1 ID:", id1)
 
-	task.wait(6.5)
+	task.wait(13)
 
 	local pos2 = placeRaff2()
 	print("📌 raff2 วางที่:", tostring(pos2))
 	local id2 = placeUnitSafe(pos2, 2)
 	print("🆔 raff2 ID:", id2)
 
-	task.wait(34.5)
+	task.wait(69)
 
 	local pos3 = placeRaff3()
 	print("📌 raff3 วางที่:", tostring(pos3))
@@ -193,7 +193,7 @@ local function runGameLoop()
 	-- อัปเกรดยูนิต
 	waitUntilCash(8000)
 	upgradeUnitById(id3)
-	task.wait(15)
+	task.wait(30)
 	waitUntilCash(8000)
 	upgradeUnitById(id2)
 
