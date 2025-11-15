@@ -220,7 +220,7 @@ local function runGameLoop()
 			local id2 = placeUnitSafe(pos2, 2)
 			checkAbort()
 
-			smartWait(69)
+			smartWait(70)
 			checkAbort()
 
 			-- raff3
