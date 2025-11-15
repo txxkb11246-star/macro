@@ -197,7 +197,7 @@ local function runGameLoop()
 			local id1 = placeUnitSafe(pos1, 1)
 			checkAbort()
 
-			task.wait(13)
+			task.wait(6.5)
 			checkAbort()
 
 			-- raff2
@@ -205,7 +205,7 @@ local function runGameLoop()
 			local id2 = placeUnitSafe(pos2, 2)
 			checkAbort()
 
-			task.wait(69)
+			task.wait(34.5)
 			checkAbort()
 
 			-- raff3
@@ -218,7 +218,7 @@ local function runGameLoop()
 			checkAbort()
 			upgradeUnitById(id3)
 
-			task.wait(30)
+			task.wait(15)
 			checkAbort()
 
 			waitUntilCash(8000)
