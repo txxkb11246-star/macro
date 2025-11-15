@@ -217,7 +217,7 @@ local function runSingleGame()
 	-- upgrades
 	waitUntilCash(8000)
 	upgradeUnitById(id3)
-
+	task.wait(15)
 	waitUntilCash(8000)
 	upgradeUnitById(id2)
 
