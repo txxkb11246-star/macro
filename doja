@@ -197,7 +197,7 @@ local function runGameLoop()
 			local id1 = placeUnitSafe(pos1, 1)
 			checkAbort()
 
-			task.wait(14)
+			task.wait(10)
 			checkAbort()
 
 			-- raff2
@@ -205,7 +205,7 @@ local function runGameLoop()
 			local id2 = placeUnitSafe(pos2, 2)
 			checkAbort()
 
-			task.wait(56)
+			task.wait(60)
 			checkAbort()
 
 			-- raff3
