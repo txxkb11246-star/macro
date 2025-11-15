@@ -151,7 +151,7 @@ local function upgradeUnitById(id)
 end
 
 -- ===============================
--- 🚀 ฟังก์ชันเริ่มเกม
+-- 🚀 เริ่มเกมอัตโนมัติ
 -- ===============================
 local function ChooseMode()
 	ReplicatedStorage.RemoteFunctions.PlaceDifficultyVote:InvokeServer("dif_apocalypse")
@@ -166,54 +166,50 @@ end
 -- 🎮 ลูปเกมอัตโนมัติ
 -- ===============================
 local function runGameLoop()
-	while true do
-		print("🚀 เริ่มเกมใหม่")
-		ChooseMode()
-		task.wait(5)
+	-- รอบแรกเลือกโหมด
+	ChooseMode()
+	task.wait(5)
 
-		-- 🟢 วาง raff แบบสุ่มตำแหน่ง
-		local pos1 = placeRaff1()
-		print("📌 raff1 วางที่:", tostring(pos1))
-		local id1 = placeUnitSafe(pos1, 1)
-		print("🆔 raff1 ID:", id1)
+	-- วางยูนิต
+	local pos1 = placeRaff1()
+	print("📌 raff1 วางที่:", tostring(pos1))
+	local id1 = placeUnitSafe(pos1, 1)
+	print("🆔 raff1 ID:", id1)
 
-		task.wait(13)
+	task.wait(13)
 
-		local pos2 = placeRaff2()
-		print("📌 raff2 วางที่:", tostring(pos2))
-		local id2 = placeUnitSafe(pos2, 2)
-		print("🆔 raff2 ID:", id2)
+	local pos2 = placeRaff2()
+	print("📌 raff2 วางที่:", tostring(pos2))
+	local id2 = placeUnitSafe(pos2, 2)
+	print("🆔 raff2 ID:", id2)
 
-		task.wait(69)
+	task.wait(69)
 
-		local pos3 = placeRaff3()
-		print("📌 raff3 วางที่:", tostring(pos3))
-		local id3 = placeUnitSafe(pos3, 1)
-		print("🆔 raff3 ID:", id3)
+	local pos3 = placeRaff3()
+	print("📌 raff3 วางที่:", tostring(pos3))
+	local id3 = placeUnitSafe(pos3, 1)
+	print("🆔 raff3 ID:", id3)
 
-		-- 💰 อัปเกรด raff3 และ raff2 ตามเงิน
-		waitUntilCash(8000)
-		upgradeUnitById(id3)
-		task.wait(30)
-		waitUntilCash(8000)
-		upgradeUnitById(id2)
+	-- อัปเกรดยูนิต
+	waitUntilCash(8000)
+	upgradeUnitById(id3)
+	task.wait(30)
+	waitUntilCash(8000)
+	upgradeUnitById(id2)
 
-		-- 🔄 รีสตาร์ทเกมและรอ 2 วิ
-		print("♻️ รีสตาร์ทเกม...")
-		again()
-		task.wait(2)
-	end
+	-- รีสตาร์ทเกม
+	again()
 end
 
 -- ===============================
--- 🟢 เชื่อมกับ Event GameEnd
+-- 🔄 เชื่อมกับ Event GameEnd
 -- ===============================
 ReplicatedStorage.RemoteEvents.ShowGameEnd.OnClientEvent:Connect(function()
-	print("🎮 เกมจบ กำลังเริ่มใหม่...")
-	-- ไม่มีอะไรต้องทำเพราะ loop runGameLoop() ทำงานตลอด
+	task.wait(2)
+	runGameLoop()
 end)
 
 -- ===============================
--- 🔥 เริ่มลูปเกม
+-- 🔥 เริ่มรอบแรก
 -- ===============================
 runGameLoop()
