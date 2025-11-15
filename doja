@@ -205,7 +205,7 @@ local function runGameLoop()
 			local id2 = placeUnitSafe(pos2, 2)
 			checkAbort()
 
-			waitUntilCash(10000)
+			waitUntilCash(9250)
 			checkAbort()
 
 			-- raff3
