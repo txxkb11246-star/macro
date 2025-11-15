@@ -176,18 +176,28 @@ task.wait(5)
 
 -- 🟢 วาง raff แบบสุ่มตำแหน่ง
 local pos1 = placeRaff1()
+print("📌 raff1 วางที่:", tostring(pos1))
 local id1 = placeUnitSafe(pos1, 1)
+print("🆔 raff1 ID:", id1)
 
 task.wait(13)
 
 local pos2 = placeRaff2()
+print("📌 raff2 วางที่:", tostring(pos2))
 local id2 = placeUnitSafe(pos2, 2)
+print("🆔 raff2 ID:", id2)
 
-task.wait(54)
+task.wait(59)
 
 local pos3 = placeRaff3()
+print("📌 raff3 วางที่:", tostring(pos3))
 local id3 = placeUnitSafe(pos3, 1)
+print("🆔 raff3 ID:", id3)
 
 -- 💰 อัปเกรด raff3 เมื่อเงินถึง
 waitUntilCash(8000)
 upgradeUnitById(id3)
+waitForUnitId(8000)
+upgradeUnitById(id2)
+waitForUnitId(8000)
+upgradeUnitById(id1)
