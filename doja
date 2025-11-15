@@ -1,5 +1,5 @@
 -- ===============================
--- 🎮 Roblox Auto Game Loop Script (Stable + Auto-Speed + Raff2 Position ใหม่)
+-- 🎮 Roblox Auto Game Loop Script (Stable + Auto-Speed + Smart Wait)
 -- ===============================
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,11 +9,11 @@ local player = game.Players.LocalPlayer
 local PlaceUnit = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit")
 
 -- ===============================
--- ⚡ Auto-Speed จาก GUI
+-- ⚡ Auto-Speed + Smart Wait
 -- ===============================
 local function getSpeedFromGame()
 	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
-	local speedBtn = gui.Screen.Bottom:FindFirstChild("SpeedToggle") -- ชื่อตาม GUI จริง
+	local speedBtn = gui.Screen.Bottom:FindFirstChild("SpeedToggle")
 	if speedBtn and speedBtn:IsA("TextLabel") then
 		local txt = speedBtn.Text or "1x"
 		local num = tonumber(txt:match("%d")) or 1
@@ -24,7 +24,10 @@ end
 
 local function smartWait(t)
 	local speed = getSpeedFromGame()
-	task.wait(t / speed)
+	local adjusted = t / speed
+	-- cap min/max เพื่อไม่ให้สั้น/ยาวเกินไป
+	adjusted = math.clamp(adjusted, 0.05, 69)
+	task.wait(adjusted)
 end
 
 -- ===============================
@@ -42,22 +45,21 @@ end
 local lastPositions = { raff1=nil, raff2=nil, raff3=nil }
 
 -- ===============================
--- 🔹 Base ของ raff (raff2 position ใหม่)
+-- 🔹 จุด base ของ raff
 -- ===============================
 local unitBases = {
-    raff1 = Vector3.new(42.814, -21.75, -45.892),
-    raff2 = Vector3.new(-36.93769454956055, -21.749000549316406, -29.748855590820312),
-    raff3 = Vector3.new(41.676, -21.75, -44.754)
+	raff1 = Vector3.new(42.814, -21.75, -45.892),
+	raff2 = Vector3.new(-36.93769454956055, -21.749000549316406, -29.748855590820312),
+	raff3 = Vector3.new(41.676, -21.75, -44.754)
 }
 
 -- ===============================
--- 🔹 ฟังก์ชันวางยูนิต (สุ่มรอบ base)
+-- 🔹 ฟังก์ชันวางยูนิต (สุ่มรอบ base + retry)
 -- ===============================
 local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist, radius)
 	radius = radius or 5
 	local newPos
 	local attempts = 0
-
 	repeat
 		newPos = randomPositionAround(basePos, radius)
 		attempts += 1
@@ -91,7 +93,7 @@ local function placeRaff2() return placeUnitRafflesia("raff2", 2, unitBases.raff
 local function placeRaff3() return placeUnitRafflesia("raff3", 1, unitBases.raff3, 7, 10, 5) end
 
 -- ===============================
--- 🔥 ระบบติดตาม + upgrade
+-- 🔥 ระบบติดตาม unit + upgrade
 -- ===============================
 local placedUnits = {}
 
@@ -101,18 +103,16 @@ local function parseNumber(str)
 	return tonumber(cleaned) or 0
 end
 
--- รอ cash แบบ auto-speed
 local function waitUntilCash(target)
 	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 	local cashLabel = gui.Screen.Bottom.CurrencyDisplay.Cash
 	while true do
 		local now = parseNumber(cashLabel.Text)
 		if now >= target then break end
-		smartWait(0.5) -- short wait + auto speed
+		smartWait(0.2) -- aggressive wait
 	end
 end
 
--- รอ unit โผล่แบบ auto-speed
 local function waitForUnitId(unitName, timeout)
 	timeout = timeout or 15
 	local start = tick()
@@ -126,7 +126,7 @@ local function waitForUnitId(unitName, timeout)
 				return idAttr
 			end
 		end
-		smartWait(0.1)
+		smartWait(0.05) -- aggressive
 	end
 	return nil
 end
@@ -134,10 +134,8 @@ end
 local function placeUnitSafe(position, pathIndex)
 	local id
 	local attempts = 0
-
 	repeat
 		attempts += 1
-
 		local args = {
 			"unit_rafflesia",
 			{
@@ -149,21 +147,20 @@ local function placeUnitSafe(position, pathIndex)
 				Rotation = 0
 			}
 		}
-
 		PlaceUnit:InvokeServer(unpack(args))
 		id = waitForUnitId("unit_rafflesia", 15)
-
 		if not id then
 			warn("วางไม่สำเร็จ retry:", attempts)
 		end
 	until id or attempts >= 3
-
 	return id
 end
 
 local function upgradeUnitById(id)
 	if placedUnits[id] then
 		ReplicatedStorage.RemoteFunctions.UpgradeUnit:InvokeServer(id)
+	else
+		warn("ไม่พบ unit ID:", id)
 	end
 end
 
@@ -212,34 +209,36 @@ local function runGameLoop()
 			local id1 = placeUnitSafe(pos1, 1)
 			checkAbort()
 
+			-- raff1 → raff2
 			smartWait(13)
-			checkAbort()
 
 			-- raff2
 			local pos2 = placeRaff2()
 			local id2 = placeUnitSafe(pos2, 2)
 			checkAbort()
 
+			-- raff2 → raff3
 			smartWait(66)
-			checkAbort()
 
 			-- raff3
 			local pos3 = placeRaff3()
 			local id3 = placeUnitSafe(pos3, 1)
 			checkAbort()
 
-			-- Upgrade
+			-- Upgrade raff3
 			waitUntilCash(8000)
 			upgradeUnitById(id3)
 
 			smartWait(30)
 
+			-- Upgrade raff2
 			waitUntilCash(8000)
 			upgradeUnitById(id2)
 
+			-- รอเกมจบ
 			print("รอเกมจบ...")
 			while not forceRestart do
-				smartWait(0.5)
+				smartWait(0.1)
 			end
 
 			error("ForceRestartTriggered")
