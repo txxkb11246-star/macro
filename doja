@@ -205,7 +205,7 @@ local function runGameLoop()
 			local id2 = placeUnitSafe(pos2, 2)
 			checkAbort()
 
-			task.wait(69)
+			waitUntilCash(9000)
 			checkAbort()
 
 			-- raff3
