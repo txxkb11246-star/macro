@@ -252,7 +252,7 @@ local function runGameLoop()
 			waitUntilCash(8000)
 			upgradeUnitById(id3)
 
-			smartWait(30)
+			smartWait(15)
 
 			waitUntilCash(8000)
 			upgradeUnitById(id2)
