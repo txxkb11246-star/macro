@@ -183,7 +183,7 @@ local function runGameLoop()
 	local id2 = placeUnitSafe(pos2, 2)
 	print("🆔 raff2 ID:", id2)
 
-	task.wait(69)
+	task.wait(72)
 
 	local pos3 = placeRaff3()
 	print("📌 raff3 วางที่:", tostring(pos3))
