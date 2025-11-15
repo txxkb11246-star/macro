@@ -19,7 +19,7 @@ end
 local lastPositions = { raff1=nil, raff2=nil, raff3=nil }
 
 -- ===============================
--- 🔹 ฟังก์ชันวาง Raff แบบสุ่ม + ไม่ชนตำแหน่งเดิม
+-- 🔹 ฟังก์ชันวาง Raff แบบสุ่ม + ไม่วางทับตำแหน่งเดิม
 -- ===============================
 local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist, radius)
 	radius = radius or 5
@@ -48,6 +48,7 @@ local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist
 	local ok, err = pcall(function()
 		PlaceUnit:InvokeServer(unpack(args))
 	end)
+
 	if not ok then warn("PlaceUnit failed:", err) end
 
 	lastPositions[unitName] = newPos
@@ -68,50 +69,34 @@ local function placeRaff2() return placeUnitRafflesia("raff2", 2, unitBases.raff
 local function placeRaff3() return placeUnitRafflesia("raff3", 1, unitBases.raff3, 7, 10, 5) end
 
 -- ==================================================
--- 🔥 ระบบปลอดภัย: ตรวจจับ ID + อัปเกรดยูนิต
+-- 🔥 ระบบตรวจจับยูนิตด้วยตำแหน่ง + อัปเกรดด้วย ID
 -- ==================================================
 local placedUnits = {}
 
--- 🧮 แปลงเงินเป็นตัวเลข
-local function parseNumber(str)
-	str = tostring(str or "")
-	local cleaned = str:gsub("[^%d]", "")
-	return tonumber(cleaned) or 0
-end
-
--- 💰 รอจนเงินถึงตามต้องการ
-local function waitUntilCash(target)
-	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
-	local cashLabel = gui.Screen.Bottom.CurrencyDisplay.Cash
-
-	while true do
-		local now = parseNumber(cashLabel.Text)
-		print("เงิน:", now)
-		if now >= target then break end
-		task.wait(1)
-	end
-end
-
--- 🔎 หา ID ของยูนิตที่เพิ่งวาง
-local function waitForUnitId(unitName, timeout)
+-- 🟢 ตรวจจับ ID ของยูนิตที่เพิ่งวาง โดยเช็คว่ามันอยู่ "ใกล้ตำแหน่งที่วาง"
+local function waitForUnitId(expectedPos, timeout)
 	timeout = timeout or 15
 	local start = tick()
 
 	while tick() - start < timeout do
-		local entities = Workspace.Map.Entities
-		for _, unit in pairs(entities:GetChildren()) do
+		for _, unit in pairs(Workspace.Map.Entities:GetChildren()) do
 			local idAttr = unit:GetAttribute("ID")
-			if unit.Name == unitName and idAttr and not placedUnits[idAttr] then
-				placedUnits[idAttr] = unit
-				return idAttr
+
+			if idAttr and not placedUnits[idAttr] then
+				-- ตรวจระยะ (ยูนิตเกิดใกล้ตำแหน่งที่เราส่งเข้า)
+				if (unit:GetPivot().Position - expectedPos).Magnitude < 6 then
+					placedUnits[idAttr] = unit
+					return idAttr
+				end
 			end
 		end
 		task.wait(0.2)
 	end
+
 	return nil
 end
 
--- 🟢 วางยูนิตแล้วรอ ID
+-- 🟢 วางยูนิตแล้วจับ ID
 local function placeUnitSafe(position, pathIndex)
 	local id
 	local attempts = 0
@@ -131,11 +116,13 @@ local function placeUnitSafe(position, pathIndex)
 		}
 
 		PlaceUnit:InvokeServer(unpack(args))
-		id = waitForUnitId("unit_rafflesia", 15)
+
+		id = waitForUnitId(position, 15)
 
 		if not id then
-			warn("วางไม่สำเร็จ retry:", attempts)
+			warn("⚠️ วางไม่สำเร็จ retry:", attempts)
 		end
+
 	until id or attempts >= 3
 
 	return id
@@ -146,7 +133,27 @@ local function upgradeUnitById(id)
 	if placedUnits[id] then
 		ReplicatedStorage.RemoteFunctions.UpgradeUnit:InvokeServer(id)
 	else
-		warn("ไม่พบ unit ID:", id)
+		warn("❌ ไม่พบ unit ID:", id)
+	end
+end
+
+-- ===============================
+-- 💰 ระบบเงิน
+-- ===============================
+local function parseNumber(str)
+	str = tostring(str or "")
+	local cleaned = str:gsub("[^%d]", "")
+	return tonumber(cleaned) or 0
+end
+
+local function waitUntilCash(target)
+	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
+	local cashLabel = gui.Screen.Bottom.CurrencyDisplay.Cash
+
+	while true do
+		local now = parseNumber(cashLabel.Text)
+		if now >= target then break end
+		task.wait(1)
 	end
 end
 
@@ -174,7 +181,7 @@ again()
 ChooseMode()
 task.wait(5)
 
--- 🟢 วาง raff แบบสุ่มตำแหน่ง
+-- วาง raff 1
 local pos1 = placeRaff1()
 print("📌 raff1 วางที่:", tostring(pos1))
 local id1 = placeUnitSafe(pos1, 1)
@@ -182,6 +189,7 @@ print("🆔 raff1 ID:", id1)
 
 task.wait(13)
 
+-- วาง raff 2
 local pos2 = placeRaff2()
 print("📌 raff2 วางที่:", tostring(pos2))
 local id2 = placeUnitSafe(pos2, 2)
@@ -189,15 +197,18 @@ print("🆔 raff2 ID:", id2)
 
 task.wait(69)
 
+-- วาง raff 3
 local pos3 = placeRaff3()
 print("📌 raff3 วางที่:", tostring(pos3))
 local id3 = placeUnitSafe(pos3, 1)
 print("🆔 raff3 ID:", id3)
 
--- 💰 อัปเกรด raff3 เมื่อเงินถึง
+-- อัปเกรดทั้งหมด
 waitUntilCash(8000)
 upgradeUnitById(id3)
+
 waitUntilCash(8000)
 upgradeUnitById(id2)
+
 waitUntilCash(8000)
 upgradeUnitById(id1)
