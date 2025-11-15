@@ -112,7 +112,7 @@ local function waitForUnitId(unitName, timeout)
 end
 
 -- 🟢 วางยูนิตแล้วรอ ID
-local function placeUnitSafe(position, pathIndex)
+local function placeUnitSafe(unitName, position, pathIndex)
 	local id
 	local attempts = 0
 
@@ -131,7 +131,7 @@ local function placeUnitSafe(position, pathIndex)
 		}
 
 		PlaceUnit:InvokeServer(unpack(args))
-		id = waitForUnitId("unit_rafflesia", 15)
+		id = waitForUnitId(unitName, 15)
 
 		if not id then
 			warn("วางไม่สำเร็จ retry:", attempts)
@@ -148,6 +148,19 @@ local function upgradeUnitById(id)
 	else
 		warn("ไม่พบ unit ID:", id)
 	end
+end
+
+-- 🔹 ฟังก์ชันอัปเกรดยูนิตทีละตัว
+local function upgradeWhenCash(id)
+	if not id then
+		warn("ไม่พบ ID สำหรับอัปเกรด")
+		return
+	end
+
+	print("⏳ รอเงิน 8000 สำหรับอัปเกรด ID:", id)
+	waitUntilCash(8000)
+	print("✅ เงินพอ อัปเกรด ID:", id)
+	upgradeUnitById(id)
 end
 
 -- ===============================
@@ -177,27 +190,24 @@ task.wait(5)
 -- 🟢 วาง raff แบบสุ่มตำแหน่ง
 local pos1 = placeRaff1()
 print("📌 raff1 วางที่:", tostring(pos1))
-local id1 = placeUnitSafe(pos1, 1)
+local id1 = placeUnitSafe("raff1", pos1, 1)
 print("🆔 raff1 ID:", id1)
 
 task.wait(13)
 
 local pos2 = placeRaff2()
 print("📌 raff2 วางที่:", tostring(pos2))
-local id2 = placeUnitSafe(pos2, 2)
+local id2 = placeUnitSafe("raff2", pos2, 2)
 print("🆔 raff2 ID:", id2)
 
 task.wait(69)
 
 local pos3 = placeRaff3()
 print("📌 raff3 วางที่:", tostring(pos3))
-local id3 = placeUnitSafe(pos3, 1)
+local id3 = placeUnitSafe("raff3", pos3, 1)
 print("🆔 raff3 ID:", id3)
 
--- 💰 อัปเกรด raff3 เมื่อเงินถึง
-waitUntilCash(8000)
-upgradeUnitById(id3)
-waitUntilCash(8000)
-upgradeUnitById(id2)
-waitUntilCash(8000)
-upgradeUnitById(id1)
+-- 💰 อัปเกรดทีละตัวตามเงิน
+upgradeWhenCash(id3)
+upgradeWhenCash(id2)
+upgradeWhenCash(id1)
