@@ -7,8 +7,8 @@ local UpgradeUnit = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChi
 
 local lastPositions = {}
 
--- 🔹 ฟังก์ชันสุ่มตำแหน่งรอบฐาน ไม่ให้ชนตำแหน่งเดิม
-local function randomPositionAround(pos, radius)
+-- 🔹 ฟังก์ชันสุ่มตำแหน่งรอบฐาน ไม่ชนตำแหน่งเดิม
+local function randomPositionAround(pos, radius, unitKey)
 	radius = radius or 5
 	local newPos
 	local attempts = 0
@@ -19,8 +19,8 @@ local function randomPositionAround(pos, radius)
 			pos.Z + (math.random() * 2 - 1) * radius
 		)
 		attempts += 1
-	until newPos ~= lastPositions[pos] or attempts > 10
-	lastPositions[pos] = newPos
+	until lastPositions[unitKey] ~= newPos or attempts > 10
+	lastPositions[unitKey] = newPos
 	return newPos
 end
 
@@ -59,7 +59,7 @@ end
 
 -- 🔹 วางยูนิต
 local function placeUnit(unitName, pathIndex, basePos, minDist, maxDist, radius)
-	local newPos = randomPositionAround(basePos, radius)
+	local newPos = randomPositionAround(basePos, radius, unitName)
 	local distanceAlong = (minDist or 7) + math.random() * ((maxDist or 10) - (minDist or 7))
 	local args = {
 		"unit_rafflesia",
@@ -89,7 +89,7 @@ end
 -- ===============================
 local unitConfigs = {
 	{ key="raff1", pathIndex=1, basePos=Vector3.new(42.814, -21.75, -45.892), minDist=7, maxDist=10, radius=5, upgradeCost=8000, waitAfterPlace=13 },
-	{ key="raff2", pathIndex=2, basePos=Vector3.new(-44.658, -21.75, -43.475), minDist=21, maxDist=24, radius=5, upgradeCost=8000, waitAfterPlace=69 },
+	{ key="raff2", pathIndex=2, basePos=Vector3.new(-44.658, -21.75, -43.475), minDist=21, maxDist=24, radius=5, upgradeCost=1250, waitAfterPlace=69 },
 	{ key="raff3", pathIndex=1, basePos=Vector3.new(41.676, -21.75, -44.754), minDist=7, maxDist=10, radius=5, upgradeCost=8000, waitAfterPlace=0 },
 }
 
@@ -103,26 +103,35 @@ local function again()
 	pcall(function() r:InvokeServer() end)
 end
 
--- 🔹 วางและอัปเกรดยูนิตทีละตัวตามลำดับ
+-- 🔹 วางและอัปเกรดยูนิตทีละตัว
 local function PlaceAndUpgradeAll()
 	again()
 	ChooseMode()
 	task.wait(5)
 
-	for i = 1, #unitConfigs do
-		local config = unitConfigs[i]
+	local placedUnits = {}
+
+	-- วางทุกตัวตามลำดับ
+	for _, config in ipairs(unitConfigs) do
 		local id, pos = placeUnit("unit_rafflesia", config.pathIndex, config.basePos, config.minDist, config.maxDist, config.radius)
+		placedUnits[config.key] = { id = id, pos = pos, upgradeCost = config.upgradeCost }
 		print("📌 วาง", config.key, "ที่:", pos, "ID:", id)
 
-		-- รอเวลาเฉพาะตัว
+		-- รอเวลาเฉพาะตัวหลังวาง
 		if config.waitAfterPlace and config.waitAfterPlace > 0 then
 			task.wait(config.waitAfterPlace)
 		end
+	end
 
-		-- รอเงินและอัปเกรดทีละตัว
-		waitUntilCash(config.upgradeCost)
-		upgradeUnitById(id)
-		print("✅ อัปเกรด", config.key, "เรียบร้อย")
+	-- อัปเกรดทีละตัวตามลำดับ (raff3 -> raff2 -> raff1)
+	for i = #unitConfigs, 1, -1 do
+		local config = unitConfigs[i]
+		local info = placedUnits[config.key]
+		if info then
+			waitUntilCash(info.upgradeCost)
+			upgradeUnitById(info.id)
+			print("✅ อัปเกรด", config.key, "เรียบร้อย")
+		end
 	end
 end
 
