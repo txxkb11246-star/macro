@@ -1,5 +1,5 @@
 -- ===============================
--- 🎮 Roblox Auto Game Loop Script (Stable Version)
+-- 🎮 Roblox Auto Game Loop Script (Fast + Stable Version)
 -- ===============================
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -23,7 +23,7 @@ end
 local lastPositions = { raff1=nil, raff2=nil, raff3=nil }
 
 -- ===============================
--- 🔹 ฟังก์ชันวาง Raff + Random + กันชนซ้ำ
+-- 🔹 ฟังก์ชันวาง Raff ปกติ (1 ครั้ง ไม่วางซ้ำ)
 -- ===============================
 local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist, radius)
 	radius = radius or 5
@@ -82,6 +82,9 @@ local function parseNumber(str)
 	return tonumber(cleaned) or 0
 end
 
+-- ===============================
+-- รอเงิน
+-- ===============================
 local function waitUntilCash(target)
 	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 	local cashLabel = gui.Screen.Bottom.CurrencyDisplay.Cash
@@ -93,6 +96,9 @@ local function waitUntilCash(target)
 	end
 end
 
+-- ===============================
+-- รอ ID หลังจากวาง (เร็วสุด 0.2–2 วินาที)
+-- ===============================
 local function waitForUnitId(unitName, timeout)
 	timeout = timeout or 5
 	local start = tick()
@@ -112,35 +118,9 @@ local function waitForUnitId(unitName, timeout)
 	return nil
 end
 
-local function placeUnitSafe(position, pathIndex)
-	local id
-	local attempts = 0
-
-	repeat
-		attempts += 1
-		local args = {
-			"unit_rafflesia",
-			{
-				Valid = true,
-				PathIndex = pathIndex or 1,
-				Position = position,
-				DistanceAlongPath = 0,
-				CF = CFrame.new(position),
-				Rotation = 0
-			}
-		}
-
-		PlaceUnit:InvokeServer(unpack(args))
-		id = waitForUnitId("unit_rafflesia", 15)
-
-		if not id then
-			warn("วางไม่สำเร็จ retry:", attempts)
-		end
-	until id or attempts >= 3
-
-	return id
-end
-
+-- ===============================
+-- อัปเกรด
+-- ===============================
 local function upgradeUnitById(id)
 	if placedUnits[id] then
 		ReplicatedStorage.RemoteFunctions.UpgradeUnit:InvokeServer(id)
@@ -150,27 +130,27 @@ local function upgradeUnitById(id)
 end
 
 -- ===============================
--- 🚀 เลือกโหมดเกม
+-- เลือกโหมด
 -- ===============================
 local function ChooseMode()
 	ReplicatedStorage.RemoteFunctions.PlaceDifficultyVote:InvokeServer("dif_apocalypse")
 end
 
 -- ===============================
--- 🔄 ฟังก์ชันรีสตาร์ทเกม
+-- รีสตาร์ท
 -- ===============================
 local function again()
 	local r = ReplicatedStorage.RemoteFunctions.RestartGame
 	pcall(function() r:InvokeServer() end)
 end
 
--- =========================================================
--- ⭐⭐ ระบบ Force Restart เมื่อ error หรือเกมจบ ⭐⭐
--- =========================================================
+-- ===============================
+-- Force Restart
+-- ===============================
 local forceRestart = false
 
 ReplicatedStorage.RemoteEvents.ShowGameEnd.OnClientEvent:Connect(function()
-	print("⚠ ShowGameEnd ระหว่างทำงาน → รีเซ็ตรอบทันที")
+	print("⚠ ShowGameEnd → Restart")
 	forceRestart = true
 end)
 
@@ -181,7 +161,7 @@ local function checkAbort()
 end
 
 -- ===============================
--- 🎯 ลูปเล่นเกมอัตโนมัติ
+-- 🔥 ลูปเร็วสุด
 -- ===============================
 local function runGameLoop()
 	while true do
@@ -194,54 +174,45 @@ local function runGameLoop()
 
 			-- raff1
 			local pos1 = placeRaff1()
-			local id1 = placeUnitSafe(pos1, 1)
+			local id1 = waitForUnitId("unit_rafflesia", 5)
 			checkAbort()
 
 			task.wait(6)
-			checkAbort()
 
 			-- raff2
 			local pos2 = placeRaff2()
-			local id2 = placeUnitSafe(pos2, 2)
+			local id2 = waitForUnitId("unit_rafflesia", 5)
 			checkAbort()
 
 			task.wait(35)
-			checkAbort()
 
 			-- raff3
 			local pos3 = placeRaff3()
-			local id3 = placeUnitSafe(pos3, 1)
+			local id3 = waitForUnitId("unit_rafflesia", 5)
 			checkAbort()
 
 			-- อัปเกรด
 			waitUntilCash(8000)
-			checkAbort()
 			upgradeUnitById(id3)
+			checkAbort()
 
 			task.wait(15)
-			checkAbort()
 
 			waitUntilCash(8000)
-			checkAbort()
 			upgradeUnitById(id2)
 
-			-- รอ ShowGameEnd ปกติ
-			print("รอเกมจบ...")
+			-- รอจบ
 			while not forceRestart do
 				task.wait(0.5)
 			end
-
 			error("ForceRestartTriggered")
 		end)
 
-		print("♻ รีสตาร์ทเกม เนื่องจาก:", err)
+		print("♻ รีสตาร์ทเกม:", err)
 
 		again()
 		task.wait(5)
 	end
 end
 
--- ===============================
--- 🔥 เริ่มทำงาน
--- ===============================
 runGameLoop()
