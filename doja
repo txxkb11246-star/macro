@@ -94,7 +94,7 @@ local function waitUntilCash(target)
 end
 
 local function waitForUnitId(unitName, timeout)
-	timeout = timeout or 15
+	timeout = timeout or 5
 	local start = tick()
 
 	while tick() - start < timeout do
@@ -197,7 +197,7 @@ local function runGameLoop()
 			local id1 = placeUnitSafe(pos1, 1)
 			checkAbort()
 
-			task.wait(10)
+			task.wait(6)
 			checkAbort()
 
 			-- raff2
@@ -205,7 +205,7 @@ local function runGameLoop()
 			local id2 = placeUnitSafe(pos2, 2)
 			checkAbort()
 
-			task.wait(60)
+			task.wait(35)
 			checkAbort()
 
 			-- raff3
@@ -218,7 +218,7 @@ local function runGameLoop()
 			checkAbort()
 			upgradeUnitById(id3)
 
-			task.wait(30)
+			task.wait(15)
 			checkAbort()
 
 			waitUntilCash(8000)
