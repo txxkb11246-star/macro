@@ -72,14 +72,12 @@ local function placeRaff3() return placeUnitRafflesia("raff3", 1, unitBases.raff
 -- ===============================
 local placedUnits = {}
 
--- แปลง string เงินเป็นตัวเลข
 local function parseNumber(str)
     str = tostring(str or "")
     local cleaned = str:gsub("[^%d]", "")
     return tonumber(cleaned) or 0
 end
 
--- รอจนเงินถึงตามต้องการ
 local function waitUntilCash(target)
     local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
     local cashLabel = gui.Screen.Bottom.CurrencyDisplay.Cash
@@ -92,7 +90,6 @@ local function waitUntilCash(target)
     end
 end
 
--- หา ID ของยูนิตที่เพิ่งวาง
 local function waitForUnitId(unitName, timeout)
     timeout = timeout or 15
     local start = tick()
@@ -111,7 +108,6 @@ local function waitForUnitId(unitName, timeout)
     return nil
 end
 
--- วางยูนิตแล้วรอ ID
 local function placeUnitSafe(position, pathIndex)
     local id
     local attempts = 0
@@ -141,7 +137,6 @@ local function placeUnitSafe(position, pathIndex)
     return id
 end
 
--- อัปเกรดยูนิตตาม ID
 local function upgradeUnitById(id)
     if placedUnits[id] then
         ReplicatedStorage.RemoteFunctions.UpgradeUnit:InvokeServer(id)
@@ -192,7 +187,6 @@ local function runGameCycle()
     local id3 = placeUnitSafe(pos3, 1)
     print("🆔 raff3 ID:", id3)
 
-    -- อัปเกรดยูนิตตามเงิน
     waitUntilCash(8000)
     upgradeUnitById(id3)
     task.wait(30)
@@ -201,21 +195,18 @@ local function runGameCycle()
 end
 
 -- ===============================
--- 🔁 เริ่มลูปอัตโนมัติหลังเกมจบ
+-- 🔁 เริ่มลูปหลังเกมจบเท่านั้น
 -- ===============================
 local function startAutoPlay()
-    -- ฟัง Event เกมจบครั้งเดียว
+    print("🔹 รอเกมจบเพื่อเริ่มรอบแรก...")
+
     ReplicatedStorage.RemoteEvents.ShowGameEnd.OnClientEvent:Connect(function()
+        print("🔹 เกมจบแล้ว! รีสตาร์ท...")
         task.wait(2)
         again() -- รีสตาร์ทเกม
-        task.wait(5) -- รอเกมรีสตาร์ทเสร็จ
-        runGameCycle() -- เรียกรอบใหม่
+        task.wait(5) -- รอเกมโหลดเสร็จ
+        runGameCycle() -- เริ่มรอบใหม่
     end)
-
-    -- เริ่มรอบแรกหลังเกมโหลดเสร็จ
-    task.wait(5)
-    runGameCycle()
 end
 
--- เริ่มเล่นอัตโนมัติ
 startAutoPlay()
