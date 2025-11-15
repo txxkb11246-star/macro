@@ -197,7 +197,6 @@ print("🆔 raff3 ID:", id3)
 -- 💰 อัปเกรด raff3 เมื่อเงินถึง
 waitUntilCash(8000)
 upgradeUnitById(id3)
+task.wait(30)
 waitUntilCash(8000)
 upgradeUnitById(id2)
-waitUntilCash(8000)
-upgradeUnitById(id1)
