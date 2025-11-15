@@ -51,8 +51,6 @@ local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist
 	lastPositions[unitName] = newPos
 
 	-- ✅ เพิ่ม delay ให้ Server ประมวลผลเรียบร้อย
-	task.wait(6)
-
 	return newPos
 end
 
