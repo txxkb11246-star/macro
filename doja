@@ -187,7 +187,7 @@ print("📌 raff2 วางที่:", tostring(pos2))
 local id2 = placeUnitSafe(pos2, 2)
 print("🆔 raff2 ID:", id2)
 
-task.wait(59)
+task.wait(69)
 
 local pos3 = placeRaff3()
 print("📌 raff3 วางที่:", tostring(pos3))
