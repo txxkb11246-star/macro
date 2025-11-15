@@ -3,86 +3,55 @@ local Workspace = game:GetService("Workspace")
 local player = game.Players.LocalPlayer
 
 local PlaceUnit = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit")
-local UpgradeUnit = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("UpgradeUnit")
 
 -- ===============================
--- 🔹 ฟังก์ชันสุ่มตำแหน่งรอบฐาน
+-- 🔹 ฟังก์ชันสุ่มตำแหน่งรอบจุดตั้งต้น
 -- ===============================
-local lastPositions = {}
+local function randomPositionAround(pos, radius)
+	radius = radius or 5
+	return Vector3.new(
+		pos.X + (math.random() * 2 - 1) * radius,
+		pos.Y,
+		pos.Z + (math.random() * 2 - 1) * radius
+	)
+end
 
-local function randomPositionAround(pos, radius, unitKey)
+local lastPositions = { raff1=nil, raff2=nil, raff3=nil }
+
+-- ===============================
+-- 🔹 ฟังก์ชันวาง Raff แบบสุ่ม + ไม่ชนตำแหน่งเดิม
+-- ===============================
+local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist, radius)
 	radius = radius or 5
 	local newPos
 	local attempts = 0
+
 	repeat
-		newPos = Vector3.new(
-			pos.X + (math.random() * 2 - 1) * radius,
-			pos.Y,
-			pos.Z + (math.random() * 2 - 1) * radius
-		)
+		newPos = randomPositionAround(basePos, radius)
 		attempts += 1
-	until lastPositions[unitKey] ~= newPos or attempts > 10
-	lastPositions[unitKey] = newPos
-	return newPos
-end
+	until lastPositions[unitName] ~= newPos or attempts > 10
 
--- ===============================
--- 🔹 ฟังก์ชันรอเงิน
--- ===============================
-local function parseNumber(str)
-	str = tostring(str or "")
-	local cleaned = str:gsub("[^%d]", "")
-	return tonumber(cleaned) or 0
-end
+	local distanceAlong = (minDist or 7) + math.random() * ((maxDist or 10) - (minDist or 7))
 
-local function waitUntilCash(target)
-	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
-	local cashLabel = gui.Screen.Bottom.CurrencyDisplay.Cash
-	while parseNumber(cashLabel.Text) < target do
-		task.wait(1)
-	end
-end
-
--- ===============================
--- 🔹 ฟังก์ชันวางและรอ ID
--- ===============================
-local function waitForUnitId(unitName, timeout)
-	timeout = timeout or 15
-	local start = tick()
-	while tick() - start < timeout do
-		local entities = Workspace.Map.Entities
-		for _, unit in pairs(entities:GetChildren()) do
-			local idAttr = unit:GetAttribute("ID")
-			if unit.Name == unitName and idAttr then
-				return idAttr
-			end
-		end
-		task.wait(0.2)
-	end
-	return nil
-end
-
-local function placeUnitSafe(pos, pathIndex)
 	local args = {
 		"unit_rafflesia",
 		{
 			Valid = true,
-			PathIndex = pathIndex or 1,
-			Position = pos,
-			DistanceAlongPath = 0,
-			CF = CFrame.new(pos),
-			Rotation = 0
+			PathIndex = pathIndex,
+			Position = newPos,
+			DistanceAlongPath = distanceAlong,
+			CF = CFrame.new(newPos),
+			Rotation = 180
 		}
 	}
-	local ok, err = pcall(function() PlaceUnit:InvokeServer(unpack(args)) end)
-	if not ok then warn("PlaceUnit failed:", err) end
-	local id = waitForUnitId("unit_rafflesia", 15)
-	return id
-end
 
-local function upgradeUnitById(id)
-	if not id then return end
-	UpgradeUnit:InvokeServer(id)
+	local ok, err = pcall(function()
+		PlaceUnit:InvokeServer(unpack(args))
+	end)
+	if not ok then warn("PlaceUnit failed:", err) end
+
+	lastPositions[unitName] = newPos
+	return newPos
 end
 
 -- ===============================
@@ -94,12 +63,95 @@ local unitBases = {
 	raff3 = Vector3.new(41.676, -21.75, -44.754)
 }
 
-local function placeRaff1() return randomPositionAround(unitBases.raff1, 5, "raff1") end
-local function placeRaff2() return randomPositionAround(unitBases.raff2, 5, "raff2") end
-local function placeRaff3() return randomPositionAround(unitBases.raff3, 5, "raff3") end
+local function placeRaff1() return placeUnitRafflesia("raff1", 1, unitBases.raff1, 7, 10, 5) end
+local function placeRaff2() return placeUnitRafflesia("raff2", 2, unitBases.raff2, 21, 24, 5) end
+local function placeRaff3() return placeUnitRafflesia("raff3", 1, unitBases.raff3, 7, 10, 5) end
+
+-- ==================================================
+-- 🔥 ระบบปลอดภัย: ตรวจจับ ID + อัปเกรดยูนิต
+-- ==================================================
+local placedUnits = {}
+
+-- 🧮 แปลงเงินเป็นตัวเลข
+local function parseNumber(str)
+	str = tostring(str or "")
+	local cleaned = str:gsub("[^%d]", "")
+	return tonumber(cleaned) or 0
+end
+
+-- 💰 รอจนเงินถึงตามต้องการ
+local function waitUntilCash(target)
+	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
+	local cashLabel = gui.Screen.Bottom.CurrencyDisplay.Cash
+
+	while true do
+		local now = parseNumber(cashLabel.Text)
+		print("เงิน:", now)
+		if now >= target then break end
+		task.wait(1)
+	end
+end
+
+-- 🔎 หา ID ของยูนิตที่เพิ่งวาง
+local function waitForUnitId(unitName, timeout)
+	timeout = timeout or 15
+	local start = tick()
+
+	while tick() - start < timeout do
+		local entities = Workspace.Map.Entities
+		for _, unit in pairs(entities:GetChildren()) do
+			local idAttr = unit:GetAttribute("ID")
+			if unit.Name == unitName and idAttr and not placedUnits[idAttr] then
+				placedUnits[idAttr] = unit
+				return idAttr
+			end
+		end
+		task.wait(0.2)
+	end
+	return nil
+end
+
+-- 🟢 วางยูนิตแล้วรอ ID
+local function placeUnitSafe(position, pathIndex)
+	local id
+	local attempts = 0
+
+	repeat
+		attempts += 1
+		local args = {
+			"unit_rafflesia",
+			{
+				Valid = true,
+				PathIndex = pathIndex or 1,
+				Position = position,
+				DistanceAlongPath = 0,
+				CF = CFrame.new(position),
+				Rotation = 0
+			}
+		}
+
+		PlaceUnit:InvokeServer(unpack(args))
+		id = waitForUnitId("unit_rafflesia", 15)
+
+		if not id then
+			warn("วางไม่สำเร็จ retry:", attempts)
+		end
+	until id or attempts >= 3
+
+	return id
+end
+
+-- ⬆️ อัปเกรดตาม ID
+local function upgradeUnitById(id)
+	if placedUnits[id] then
+		ReplicatedStorage.RemoteFunctions.UpgradeUnit:InvokeServer(id)
+	else
+		warn("ไม่พบ unit ID:", id)
+	end
+end
 
 -- ===============================
--- 🔹 เริ่มเกม
+-- 🚀 เริ่มเกมอัตโนมัติ
 -- ===============================
 local function ChooseMode()
 	ReplicatedStorage.RemoteFunctions.PlaceDifficultyVote:InvokeServer("dif_apocalypse")
@@ -110,42 +162,42 @@ local function again()
 	pcall(function() r:InvokeServer() end)
 end
 
--- ===============================
--- 🔹 ฟังก์ชันหลัก เรียกเพียงครั้งเดียว
--- ===============================
-local function StartGame()
+ReplicatedStorage.RemoteEvents.ShowGameEnd.OnClientEvent:Connect(function()
+	task.wait(2)
 	again()
-	ChooseMode()
-	task.wait(5)
+end)
 
-	-- วาง raff1
-	local pos1 = placeRaff1()
-	print("📌 raff1 วางที่:", pos1)
-	local id1 = placeUnitSafe(pos1, 1)
-	print("🆔 raff1 ID:", id1)
-	task.wait(13) -- รอเวลาตัวเอง
+-- ===============================
+-- 🎮 เริ่มสคริปต์ทำงาน
+-- ===============================
+again()
+ChooseMode()
+task.wait(5)
 
-	-- วาง raff2
-	local pos2 = placeRaff2()
-	print("📌 raff2 วางที่:", pos2)
-	local id2 = placeUnitSafe(pos2, 2)
-	print("🆔 raff2 ID:", id2)
-	task.wait(69) -- รอเวลาตัวเอง
+-- 🟢 วาง raff แบบสุ่มตำแหน่ง
+local pos1 = placeRaff1()
+print("📌 raff1 วางที่:", tostring(pos1))
+local id1 = placeUnitSafe(pos1, 1)
+print("🆔 raff1 ID:", id1)
 
-	-- วาง raff3
-	local pos3 = placeRaff3()
-	print("📌 raff3 วางที่:", pos3)
-	local id3 = placeUnitSafe(pos3, 1)
-	print("🆔 raff3 ID:", id3)
+task.wait(13)
 
-	-- อัปเกรดทีละตัวตามลำดับ
-	waitUntilCash(8000)
-	upgradeUnitById(id3)
-	waitUntilCash(1250)
-	upgradeUnitById(id2)
-	waitUntilCash(8000)
-	upgradeUnitById(id1)
-end
+local pos2 = placeRaff2()
+print("📌 raff2 วางที่:", tostring(pos2))
+local id2 = placeUnitSafe(pos2, 2)
+print("🆔 raff2 ID:", id2)
 
--- เรียกใช้งาน
-StartGame()
+task.wait(69)
+
+local pos3 = placeRaff3()
+print("📌 raff3 วางที่:", tostring(pos3))
+local id3 = placeUnitSafe(pos3, 1)
+print("🆔 raff3 ID:", id3)
+
+-- 💰 อัปเกรด raff3 เมื่อเงินถึง
+waitUntilCash(8000)
+upgradeUnitById(id3)
+task.wait(40)
+upgradeUnitById(id2)
+waitUntilCash(8000)
+upgradeUnitById(id1)
