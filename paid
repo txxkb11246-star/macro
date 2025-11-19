@@ -1,152 +1,238 @@
-function law1()
-	local args = {
-	"unit_lawnmower",
-	{
-		Valid = true,
-		PathIndex = 3,
-		Position = vector.create(-853.1721801757812, 62.18030548095703, -123.05203247070312),
-		DistanceAlongPath = 238.70819091796875,
-		CF = CFrame.new(-853.1721801757812, 62.18030548095703, -123.05203247070312, -0, 0, 1, 0, 1, -0, -1, 0, -0),
-		Rotation = 180
-	}
+-- ===============================
+-- 🎮 Roblox Auto Game Loop Script (Fixed Memory Leak Version)
+-- ===============================
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local player = game.Players.LocalPlayer
+
+local PlaceUnit = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit")
+
+-- ===============================
+-- 🔧 ตัวแปรหลัก
+-- ===============================
+local placedUnits = {}
+local lastPositions = { raff1=nil, raff2=nil, raff3=nil }
+local forceRestart = false
+
+-- ===============================
+-- 🔹 Cleanup ฟังก์ชัน
+-- ===============================
+local function cleanup()
+	placedUnits = {}
+	lastPositions = { raff1=nil, raff2=nil, raff3=nil }
+	forceRestart = false
+end
+
+-- ===============================
+-- 🔹 ฟังชันสุ่มตำแหน่ง
+-- ===============================
+local function randomPositionAround(pos, radius)
+	radius = radius or 5
+	return Vector3.new(
+		pos.X + (math.random()*2-1)*radius,
+		pos.Y,
+		pos.Z + (math.random()*2-1)*radius
+	)
+end
+
+-- ===============================
+-- 🔹 ฟังก์ชันวาง raff
+-- ===============================
+local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist, radius)
+	radius = radius or 5
+	local newPos
+	local attempts = 0
+
+	repeat
+		newPos = randomPositionAround(basePos, radius)
+		attempts += 1
+	until lastPositions[unitName] ~= newPos or attempts > 10
+
+	local distanceAlong = (minDist or 7) + math.random() * ((maxDist or 10) - (minDist or 7))
+
+	local ok, err = pcall(function()
+		PlaceUnit:InvokeServer(
+			"unit_rafflesia",
+			{
+				Valid = true,
+				PathIndex = pathIndex,
+				Position = newPos,
+				DistanceAlongPath = distanceAlong,
+				CF = CFrame.new(newPos),
+				Rotation = 180
+			}
+		)
+	end)
+
+	if not ok then warn("PlaceUnit failed:", err) end
+
+	lastPositions[unitName] = newPos
+	return newPos
+end
+
+-- ===============================
+-- 🔹 จุด base ของหน่วย
+-- ===============================
+local unitBases = {
+	raff1 = Vector3.new(42.814, -21.75, -45.892),
+	raff2 = Vector3.new(-44.658, -21.75, -43.475),
+	raff3 = Vector3.new(41.676, -21.75, -44.754)
 }
-game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+
+local function placeRaff1() return placeUnitRafflesia("raff1", 1, unitBases.raff1, 7, 10, 5) end
+local function placeRaff2() return placeUnitRafflesia("raff2", 2, unitBases.raff2, 21, 24, 5) end
+local function placeRaff3() return placeUnitRafflesia("raff3", 1, unitBases.raff3, 7, 10, 5) end
+
+-- ===============================
+-- 🔥 Tracking unit + upgrade
+-- ===============================
+local function parseNumber(str)
+	str = tostring(str or "")
+	local cleaned = str:gsub("[^%d]", "")
+	return tonumber(cleaned) or 0
 end
 
-function ChooseMode()
-	local args = {
-		"dif_impossible"
-	}
-	game:GetService("ReplicatedStorage")
-		:WaitForChild("RemoteFunctions")
-		:WaitForChild("PlaceDifficultyVote")
-		:InvokeServer(unpack(args))
+local function waitUntilCash(target)
+	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
+	local cashLabel = gui.Screen.Bottom.CurrencyDisplay.Cash
+
+	while true do
+		if forceRestart then return end
+		local now = parseNumber(cashLabel.Text)
+		if now >= target then break end
+		task.wait(0.5)
+	end
 end
 
-function law2()
-local args = {
-	"unit_lawnmower",
-	{
-		Valid = true,
-		PathIndex = 3,
-		Position = vector.create(-853.1721801757812, 62.18030548095703, -123.05203247070312),
-		DistanceAlongPath = 238.70819091796875,
-		CF = CFrame.new(-853.1721801757812, 62.18030548095703, -123.05203247070312, -0, 0, 1, 0, 1, -0, -1, 0, -0),
-		Rotation = 180
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+local function waitForUnitId(unitName, timeout)
+	timeout = timeout or 15
+	local start = tick()
+
+	while tick() - start < timeout do
+		if forceRestart then return nil end
+
+		for _, unit in pairs(Workspace.Map.Entities:GetChildren()) do
+			local idAttr = unit:GetAttribute("ID")
+			if unit.Name == unitName and idAttr and not placedUnits[idAttr] then
+				placedUnits[idAttr] = unit
+				return idAttr
+			end
+		end
+		task.wait(0.2)
+	end
+	return nil
 end
 
-function law3()
-    local args = {
-	"unit_lawnmower",
-	{
-		Valid = true,
-		PathIndex = 2,
-		Position = vector.create(-857.3809814453125, 62.18030548095703, -118.5089111328125),
-		DistanceAlongPath = 218.54251098632812,
-		CF = CFrame.new(-857.3809814453125, 62.18030548095703, -118.5089111328125, 1, 0, -0, -0, 1, -0, -0, 0, 1),
-		Rotation = 180
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
-end
-function law4()
-    local args = {
-	"unit_lawnmower",
-	{
-		Valid = true,
-		PathIndex = 1,
-		Position = vector.create(-907.3809814453125, 62.18001937866211, -105.01107025146484),
-		DistanceAlongPath = 314.2909898236033,
-		CF = CFrame.new(-907.3809814453125, 62.18001937866211, -105.01107025146484, 1, 0, -0, -0, 0.9999709129333496, -0.00763336569070816, -0, 0.00763336569070816, 0.9999709129333496),
-		Rotation = 180
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+local function placeUnitSafe(position, pathIndex)
+	local id
+	for attempt = 1, 3 do
+		if forceRestart then return nil end
+
+		PlaceUnit:InvokeServer(
+			"unit_rafflesia",
+			{
+				Valid = true,
+				PathIndex = pathIndex or 1,
+				Position = position,
+				DistanceAlongPath = 0,
+				CF = CFrame.new(position),
+				Rotation = 0
+			}
+		)
+
+		id = waitForUnitId("unit_rafflesia", 15)
+		if id then return id end
+	end
+
+	warn("วาง unit ไม่สำเร็จ")
+	return nil
 end
 
-function law5()
-local args = {
-	"unit_lawnmower",
-	{
-		Valid = true,
-		PathIndex = 1,
-		Position = vector.create(-875.4938354492188, 62.18030548095703, -123.05203247070312),
-		DistanceAlongPath = 264.36288261413574,
-		CF = CFrame.new(-875.4938354492188, 62.18030548095703, -123.05203247070312, -0, -0, -1, -0, 1, -0, 1, 0, -0),
-		Rotation = 180
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+local function upgradeUnitById(id)
+	if placedUnits[id] then
+		ReplicatedStorage.RemoteFunctions.UpgradeUnit:InvokeServer(id)
+	end
 end
 
-function law6()
-local args = {
-	"unit_lawnmower",
-	{
-		Valid = true,
-		PathIndex = 1,
-		Position = vector.create(-907.3809814453125, 62.18030548095703, -110.3688735961914),
-		DistanceAlongPath = 308.9331874847412,
-		CF = CFrame.new(-907.3809814453125, 62.18030548095703, -110.3688735961914, 1, 0, -0, -0, 1, -0, -0, 0, 1),
-		Rotation = 180
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))
+-- ===============================
+-- 🔥 โหมดเกม
+-- ===============================
+local function ChooseMode()
+	ReplicatedStorage.RemoteFunctions.PlaceDifficultyVote:InvokeServer("dif_apocalypse")
 end
 
-function law7()
-local args = {
-	"unit_lawnmower",
-	{
-		Valid = true,
-		PathIndex = 1,
-		Position = vector.create(-907.3809814453125, 62.18030548095703, -106.6678466796875),
-		DistanceAlongPath = 312.6342144012451,
-		CF = CFrame.new(-907.3809814453125, 62.18030548095703, -106.6678466796875, 1, 0, -0, -0, 1, -0, -0, 0, 1),
-		Rotation = 180
-	}
-}
-game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit"):InvokeServer(unpack(args))    
-end
-
-function again()
-	local rs = game:GetService("ReplicatedStorage")
-	local rf = rs:WaitForChild("RemoteFunctions")
-	local restart = rf:WaitForChild("RestartGame")
-
-	local ok, result = pcall(function()
-		return restart:InvokeServer()
+-- ===============================
+-- 🔁 Restart Game
+-- ===============================
+local function again()
+	pcall(function()
+		ReplicatedStorage.RemoteFunctions.RestartGame:InvokeServer()
 	end)
 end
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RemoteEvents = ReplicatedStorage:WaitForChild("RemoteEvents")
-local ShowGameEnd = RemoteEvents:WaitForChild("ShowGameEnd")
+-- ===============================
+-- ⚠ Event – แก้ปัญหา Event ซ้อน
+-- ===============================
+local gameEndConn = nil
 
-ShowGameEnd.OnClientEvent:Connect(function(...)
-	task.wait(2)
+local function setupEvents()
+	if gameEndConn then
+		gameEndConn:Disconnect()
+	end
+
+	gameEndConn = ReplicatedStorage.RemoteEvents.ShowGameEnd.OnClientEvent:Connect(function()
+		forceRestart = true
+	end)
+end
+
+setupEvents()
+
+-- ===============================
+-- 🎯 One Game Loop (1 รอบเกม)
+-- ===============================
+local function runSingleGame()
+	cleanup()  -- ล้างตัวแปรก่อนเริ่มรอบใหม่
+
+	ChooseMode()
+	task.wait(5)
+
+	-- raff1
+	local pos1 = placeRaff1()
+	local id1 = placeUnitSafe(pos1, 1)
+	if forceRestart then return end
+
+	-- raff2
+	waitUntilCash(1250)
+	local pos2 = placeRaff2()
+	local id2 = placeUnitSafe(pos2, 2)
+	if forceRestart then return end
+
+	-- raff3
+	waitUntilCash(9250)
+	local pos3 = placeRaff3()
+	local id3 = placeUnitSafe(pos3, 1)
+	if forceRestart then return end
+
+	-- upgrades
+	waitUntilCash(8000)
+	upgradeUnitById(id3)
+	task.wait(15)
+	waitUntilCash(8000)
+	upgradeUnitById(id2)
+
+	-- รอเกมจบ
+	while not forceRestart do
+		task.wait(0.5)
+	end
+end
+
+
+-- ===============================
+-- 🚀 Main Loop – ไม่ซ้อน loop, ไม่กิน RAM
+-- ===============================
+while true do
+	runSingleGame()
 	again()
-end)
-
-ChooseMode()
-task.wait(31)
-law1()
-task.wait(21)
-law2()
-task.wait(16)
-law3()
-task.wait(5)
-law4()
-task.wait(19)
-for i=1,3 do
-    law5()
+	task.wait(5)
 end
-task.wait(2)
-for i=1,2 do
-    law6()
-end
-law7()
-again()
