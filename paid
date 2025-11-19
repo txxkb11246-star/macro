@@ -236,3 +236,13 @@ while true do
 	again()
 	task.wait(5)
 end
+-- Simple Anti-AFK (สำหรับ executor)
+local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
+local plr = Players.LocalPlayer
+
+plr.Idled:Connect(function()
+    -- จับคอนโทรลเลอร์แล้วส่งคลิกขวาเล็กน้อย
+    VirtualUser:CaptureController()
+    VirtualUser:ClickButton2(Vector2.new(0,0))
+end)
