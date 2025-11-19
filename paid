@@ -1,22 +1,24 @@
 -- ===============================
--- 🎮 Roblox Auto Game Loop Script (Fixed Memory Leak + Anti-AFK)
+-- 🎮 Roblox Auto Game Loop Script (Fixed + Anti-AFK Working)
 -- ===============================
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local VirtualUser = game:GetService("VirtualUser")
 
+local player = Players.LocalPlayer
 local PlaceUnit = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit")
 
 -- ===============================
--- 🔧 ตัวแปรหลัก
+-- 🔧 Variables
 -- ===============================
 local placedUnits = {}
 local lastPositions = { raff1=nil, raff2=nil, raff3=nil }
 local forceRestart = false
 
 -- ===============================
--- 🔹 Cleanup ฟังก์ชัน
+-- 🔹 Cleanup
 -- ===============================
 local function cleanup()
 	placedUnits = {}
@@ -25,7 +27,7 @@ local function cleanup()
 end
 
 -- ===============================
--- 🔹 ฟังก์ชันสุ่มตำแหน่ง
+-- 🔹 Random POS
 -- ===============================
 local function randomPositionAround(pos, radius)
 	radius = radius or 5
@@ -37,7 +39,7 @@ local function randomPositionAround(pos, radius)
 end
 
 -- ===============================
--- 🔹 ฟังก์ชันวาง raff
+-- 🔹 Place raff
 -- ===============================
 local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist, radius)
 	radius = radius or 5
@@ -51,7 +53,7 @@ local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist
 
 	local distanceAlong = (minDist or 7) + math.random() * ((maxDist or 10) - (minDist or 7))
 
-	local ok, err = pcall(function()
+	pcall(function()
 		PlaceUnit:InvokeServer(
 			"unit_rafflesia",
 			{
@@ -65,14 +67,12 @@ local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist
 		)
 	end)
 
-	if not ok then warn("PlaceUnit failed:", err) end
-
 	lastPositions[unitName] = newPos
 	return newPos
 end
 
 -- ===============================
--- 🔹 จุด base ของหน่วย
+-- 🔹 Base unit pos
 -- ===============================
 local unitBases = {
 	raff1 = Vector3.new(42.814, -21.75, -45.892),
@@ -85,11 +85,10 @@ local function placeRaff2() return placeUnitRafflesia("raff2", 2, unitBases.raff
 local function placeRaff3() return placeUnitRafflesia("raff3", 1, unitBases.raff3, 7, 10, 5) end
 
 -- ===============================
--- 🔥 Tracking unit + upgrade
+-- 🔥 Cash
 -- ===============================
 local function parseNumber(str)
-	str = tostring(str or "")
-	local cleaned = str:gsub("[^%d]", "")
+	local cleaned = tostring(str or ""):gsub("[^%d]", "")
 	return tonumber(cleaned) or 0
 end
 
@@ -97,55 +96,55 @@ local function waitUntilCash(target)
 	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 	local cashLabel = gui.Screen.Bottom.CurrencyDisplay.Cash
 
-	while true do
-		if forceRestart then return end
-		local now = parseNumber(cashLabel.Text)
-		if now >= target then break end
+	while not forceRestart do
+		if parseNumber(cashLabel.Text) >= target then break end
 		task.wait(0.5)
 	end
 end
 
-local function waitForUnitId(unitName, timeout)
+-- ===============================
+-- 🔥 Wait Unit ID
+-- ===============================
+local function waitForUnitId(timeout)
 	timeout = timeout or 15
 	local start = tick()
 
 	while tick() - start < timeout do
 		if forceRestart then return nil end
 
-		for _, unit in pairs(Workspace.Map.Entities:GetChildren()) do
-			local idAttr = unit:GetAttribute("ID")
-			if unit.Name == unitName and idAttr and not placedUnits[idAttr] then
-				placedUnits[idAttr] = unit
-				return idAttr
+		for _, unit in ipairs(Workspace.Map.Entities:GetChildren()) do
+			local id = unit:GetAttribute("ID")
+			if unit.Name == "unit_rafflesia" and id and not placedUnits[id] then
+				placedUnits[id] = unit
+				return id
 			end
 		end
+
 		task.wait(0.2)
 	end
-	return nil
 end
 
 local function placeUnitSafe(position, pathIndex)
-	local id
-	for attempt = 1, 3 do
+	for i = 1, 3 do
 		if forceRestart then return nil end
 
 		PlaceUnit:InvokeServer(
 			"unit_rafflesia",
 			{
 				Valid = true,
-				PathIndex = pathIndex or 1,
+				PathIndex = pathIndex,
 				Position = position,
 				DistanceAlongPath = 0,
 				CF = CFrame.new(position),
 				Rotation = 0
 			}
 		)
-
-		id = waitForUnitId("unit_rafflesia", 15)
+		
+		local id = waitForUnitId(15)
 		if id then return id end
 	end
 
-	warn("วาง unit ไม่สำเร็จ")
+	warn("Place fail")
 	return nil
 end
 
@@ -156,14 +155,14 @@ local function upgradeUnitById(id)
 end
 
 -- ===============================
--- 🔥 โหมดเกม
+-- 🔥 Mode
 -- ===============================
 local function ChooseMode()
 	ReplicatedStorage.RemoteFunctions.PlaceDifficultyVote:InvokeServer("dif_apocalypse")
 end
 
 -- ===============================
--- 🔁 Restart Game
+-- 🔁 Restart
 -- ===============================
 local function again()
 	pcall(function()
@@ -172,9 +171,9 @@ local function again()
 end
 
 -- ===============================
--- ⚠ Event – กัน OnClientEvent ซ้อน
+-- ⚠ Event
 -- ===============================
-local gameEndConn = nil
+local gameEndConn
 
 local function setupEvents()
 	if gameEndConn then
@@ -189,7 +188,7 @@ end
 setupEvents()
 
 -- ===============================
--- 🎯 One Game Loop
+-- 🎯 One full game
 -- ===============================
 local function runSingleGame()
 	cleanup()
@@ -197,24 +196,20 @@ local function runSingleGame()
 	ChooseMode()
 	task.wait(5)
 
-	-- raff1
 	local pos1 = placeRaff1()
 	local id1 = placeUnitSafe(pos1, 1)
 	if forceRestart then return end
 
-	-- raff2
 	waitUntilCash(1250)
 	local pos2 = placeRaff2()
 	local id2 = placeUnitSafe(pos2, 2)
 	if forceRestart then return end
 
-	-- raff3
 	waitUntilCash(9250)
 	local pos3 = placeRaff3()
 	local id3 = placeUnitSafe(pos3, 1)
 	if forceRestart then return end
 
-	-- upgrades
 	waitUntilCash(8000)
 	upgradeUnitById(id3)
 	task.wait(15)
@@ -227,7 +222,7 @@ local function runSingleGame()
 end
 
 -- ===============================
--- 🚀 Main Loop
+-- 🚀 MAIN LOOP (แยก Thread)
 -- ===============================
 task.spawn(function()
 	while true do
@@ -238,13 +233,11 @@ task.spawn(function()
 end)
 
 -- ===============================
--- 💤 SIMPLE ANTI-AFK
+-- 💤 ANTI-AFK (แยก Thread)
 -- ===============================
-local Players = game:GetService("Players")
-local VirtualUser = game:GetService("VirtualUser")
-local plr = Players.LocalPlayer
-
-plr.Idled:Connect(function()
-	VirtualUser:CaptureController()
-	VirtualUser:ClickButton2(Vector2.new(0,0))
+task.spawn(function()
+	player.Idled:Connect(function()
+		VirtualUser:CaptureController()
+		VirtualUser:ClickButton2(Vector2.new())
+	end)
 end)
