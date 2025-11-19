@@ -1,5 +1,5 @@
 -- ===============================
--- 🎮 Roblox Auto Game Loop Script (Fixed Memory Leak Version)
+-- 🎮 Roblox Auto Game Loop Script (Fixed Memory Leak + Anti-AFK)
 -- ===============================
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -25,7 +25,7 @@ local function cleanup()
 end
 
 -- ===============================
--- 🔹 ฟังชันสุ่มตำแหน่ง
+-- 🔹 ฟังก์ชันสุ่มตำแหน่ง
 -- ===============================
 local function randomPositionAround(pos, radius)
 	radius = radius or 5
@@ -172,7 +172,7 @@ local function again()
 end
 
 -- ===============================
--- ⚠ Event – แก้ปัญหา Event ซ้อน
+-- ⚠ Event – กัน OnClientEvent ซ้อน
 -- ===============================
 local gameEndConn = nil
 
@@ -189,10 +189,10 @@ end
 setupEvents()
 
 -- ===============================
--- 🎯 One Game Loop (1 รอบเกม)
+-- 🎯 One Game Loop
 -- ===============================
 local function runSingleGame()
-	cleanup()  -- ล้างตัวแปรก่อนเริ่มรอบใหม่
+	cleanup()
 
 	ChooseMode()
 	task.wait(5)
@@ -221,28 +221,30 @@ local function runSingleGame()
 	waitUntilCash(8000)
 	upgradeUnitById(id2)
 
-	-- รอเกมจบ
 	while not forceRestart do
 		task.wait(0.5)
 	end
 end
 
+-- ===============================
+-- 🚀 Main Loop
+-- ===============================
+task.spawn(function()
+	while true do
+		runSingleGame()
+		again()
+		task.wait(5)
+	end
+end)
 
 -- ===============================
--- 🚀 Main Loop – ไม่ซ้อน loop, ไม่กิน RAM
+-- 💤 SIMPLE ANTI-AFK
 -- ===============================
-while true do
-	runSingleGame()
-	again()
-	task.wait(5)
-end
--- Simple Anti-AFK (สำหรับ executor)
 local Players = game:GetService("Players")
 local VirtualUser = game:GetService("VirtualUser")
 local plr = Players.LocalPlayer
 
 plr.Idled:Connect(function()
-    -- จับคอนโทรลเลอร์แล้วส่งคลิกขวาเล็กน้อย
-    VirtualUser:CaptureController()
-    VirtualUser:ClickButton2(Vector2.new(0,0))
+	VirtualUser:CaptureController()
+	VirtualUser:ClickButton2(Vector2.new(0,0))
 end)
