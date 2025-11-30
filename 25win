@@ -193,8 +193,7 @@ local function runSingleGame()
 	cleanup()
 	ChooseMode()
 	task.wait(5)
-    x2()
-    
+
 	for i = 1, 15 do
 		if forceRestart then break end
 		local pos = placeToma(i)
