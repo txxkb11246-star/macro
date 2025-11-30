@@ -1,5 +1,5 @@
 -- ===============================
--- 🎮 Roblox Auto Game Loop Script (Tomato Version – Fixed Memory Leak)
+-- 🎮 Roblox Auto Game Loop Script (Tomato Version – Full)
 -- ===============================
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -12,10 +12,7 @@ local PlaceUnit = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild
 -- 🔧 ตัวแปรหลัก
 -- ===============================
 local placedUnits = {}
-local lastPositions = {
-	toma1=nil, toma2=nil, toma3=nil,
-	toma4=nil, toma5=nil, toma6=nil
-}
+local lastPositions = {}
 local forceRestart = false
 
 -- ===============================
@@ -23,10 +20,7 @@ local forceRestart = false
 -- ===============================
 local function cleanup()
 	placedUnits = {}
-	lastPositions = {
-		toma1=nil, toma2=nil, toma3=nil,
-		toma4=nil, toma5=nil, toma6=nil
-	}
+	lastPositions = {}
 	forceRestart = false
 end
 
@@ -75,7 +69,7 @@ local function placeUnitTomato(unitKey, basePos, radius)
 end
 
 -- ===============================
--- 🔹 จุด base ของ Tomato
+-- 🔹 ตำแหน่ง Tomato ทั้งหมด (1–15)
 -- ===============================
 local unitBases = {
 	toma1 = Vector3.new(-331.2817, 61.6803, -132.8616),
@@ -83,18 +77,20 @@ local unitBases = {
 	toma3 = Vector3.new(-327.7277, 61.6803, -132.9896),
 	toma4 = Vector3.new(-327.8808, 61.6803, -128.7868),
 	toma5 = Vector3.new(-325.9501, 61.6803, -129.1650),
-	toma6 = Vector3.new(-325.9155, 61.6803, -133.3724)
+	toma6 = Vector3.new(-325.9155, 61.6803, -133.3724),
+	toma7  = Vector3.new(-308.5768737792969, 61.68030548095703, -140.82171630859375),
+	toma8  = Vector3.new(-311.57550048828125, 61.68030548095703, -140.97103881835938),
+	toma9  = Vector3.new(-308.37445068359375, 61.68030548095703, -143.71533203125),
+	toma10 = Vector3.new(-308.50335693359375, 61.68030548095703, -147.10491943359375),
+	toma11 = Vector3.new(-314.452392578125, 61.68030548095703, -140.98892211914062),
+	toma12 = Vector3.new(-362.9935302734375, 61.68030548095703, -177.93804931640625),
+	toma13 = Vector3.new(-363.2125549316406, 61.68030548095703, -181.3274688720703),
+	toma14 = Vector3.new(-363.40838623046875, 61.68030548095703, -185.37889099121094),
+	toma15 = Vector3.new(-338.7796630859375, 61.68030548095703, -217.81846618652344)
 }
 
-local function placeToma1() return placeUnitTomato("toma1", unitBases.toma1) end
-local function placeToma2() return placeUnitTomato("toma2", unitBases.toma2) end
-local function placeToma3() return placeUnitTomato("toma3", unitBases.toma3) end
-local function placeToma4() return placeUnitTomato("toma4", unitBases.toma4) end
-local function placeToma5() return placeUnitTomato("toma5", unitBases.toma5) end
-local function placeToma6() return placeUnitTomato("toma6", unitBases.toma6) end
-
 -- ===============================
--- 🔥 Tracking + Unit ID + Upgrade
+-- 🔹 ฟังก์ชันช่วย parse number
 -- ===============================
 local function parseNumber(str)
 	str = tostring(str or "")
@@ -102,6 +98,9 @@ local function parseNumber(str)
 	return tonumber(cleaned) or 0
 end
 
+-- ===============================
+-- 🔹 รอ cash
+-- ===============================
 local function waitUntilCash(target)
 	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 	local cashLabel = gui.Screen.Bottom.CurrencyDisplay.Cash
@@ -113,6 +112,9 @@ local function waitUntilCash(target)
 	end
 end
 
+-- ===============================
+-- 🔹 รอ unit ID หลังวาง
+-- ===============================
 local function waitForUnitId(unitName, timeout)
 	timeout = timeout or 15
 	local start = tick()
@@ -152,6 +154,9 @@ local function placeUnitSafe(pos)
 	return nil
 end
 
+-- ===============================
+-- 🔹 อัปเกรด unit
+-- ===============================
 local function upgradeUnitById(id)
 	if placedUnits[id] then
 		ReplicatedStorage.RemoteFunctions.UpgradeUnit:InvokeServer(id)
@@ -159,7 +164,7 @@ local function upgradeUnitById(id)
 end
 
 -- ===============================
--- 🔥 เลือกโหมด
+-- 🔹 เลือกโหมด
 -- ===============================
 local function ChooseMode()
 	ReplicatedStorage.RemoteFunctions.PlaceDifficultyVote:InvokeServer("dif_easy")
@@ -187,6 +192,31 @@ end
 setupEvents()
 
 -- ===============================
+-- 🔹 วาง Tomato ทั้งหมด + รอ cash + upgrade
+-- ===============================
+local function placeAllTomatoes()
+	local ids = {}
+	for key, pos in pairs(unitBases) do
+		if forceRestart then break end
+		local newPos = placeUnitTomato(key, pos)
+		local id = placeUnitSafe(newPos)
+		if id then
+			ids[key] = id
+		end
+		-- อัปเกรดตามลำดับ cash
+		waitUntilCash(125)
+		upgradeUnitById(id)
+		waitUntilCash(175)
+		upgradeUnitById(id)
+		waitUntilCash(350)
+		upgradeUnitById(id)
+		waitUntilCash(500)
+		upgradeUnitById(id)
+	end
+	return ids
+end
+
+-- ===============================
 -- 🎯 One Game Loop (1 รอบเกม)
 -- ===============================
 local function runSingleGame()
@@ -194,71 +224,8 @@ local function runSingleGame()
 	ChooseMode()
 	task.wait(5)
 
-	local pos1 = placeToma1()
-	local id1 = placeUnitSafe(pos1)
-	if forceRestart then return end
-    waitUntilCash(125)
-	upgradeUnitById(id1)
-    waitUntilCash(175)
-	upgradeUnitById(id1)
-    waitUntilCash(350)
-	upgradeUnitById(id1)
-    waitUntilCash(500)
-	upgradeUnitById(id1)
-	local pos2 = placeToma2()
-	local id2 = placeUnitSafe(pos2)
-	if forceRestart then return end
-    waitUntilCash(125)
-	upgradeUnitById(id2)
-    waitUntilCash(175)
-	upgradeUnitById(id2)
-    waitUntilCash(350)
-	upgradeUnitById(id2)
-    waitUntilCash(500)
-	upgradeUnitById(id2)
-	local pos3 = placeToma3()
-	local id3 = placeUnitSafe(pos3)
-	if forceRestart then return end
-    waitUntilCash(125)
-	upgradeUnitById(id3)
-    waitUntilCash(175)
-	upgradeUnitById(id3)
-    waitUntilCash(350)
-	upgradeUnitById(id3)
-    waitUntilCash(500)
-	upgradeUnitById(id3)
-	local pos4 = placeToma4()
-	local id4 = placeUnitSafe(pos4)
-	if forceRestart then return end
-    waitUntilCash(125)
-	upgradeUnitById(id4)
-    waitUntilCash(175)
-	upgradeUnitById(id4)
-    waitUntilCash(350)
-	upgradeUnitById(id4)
-    waitUntilCash(500)
-	upgradeUnitById(id4)
-	local pos5 = placeToma5()
-	local id5 = placeUnitSafe(pos5)
-	if forceRestart then return end
-    waitUntilCash(125)
-	upgradeUnitById(id5)
-    waitUntilCash(175)
-	upgradeUnitById(id5)
-    waitUntilCash(350)
-	upgradeUnitById(id5)
-    waitUntilCash(500)
-	upgradeUnitById(id5)
-	local pos6 = placeToma6()
-	local id6 = placeUnitSafe(pos6)
-    waitUntilCash(125)
-	upgradeUnitById(id6)
-    waitUntilCash(175)
-	upgradeUnitById(id6)
-    waitUntilCash(350)
-	upgradeUnitById(id6)
-    waitUntilCash(500)
-	upgradeUnitById(id6)
+	placeAllTomatoes()
+
 	if forceRestart then return end
 	while not forceRestart do
 		task.wait(0.5)
