@@ -1,10 +1,11 @@
 -- ===============================
--- 🎮 Roblox Auto Game Loop Script (Tomato Version – Extended & Random)
+-- 🎮 Roblox Auto Game Loop Script (Tomato + AutoSkip)
 -- ===============================
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local player = game.Players.LocalPlayer
+local VIM = game:GetService("VirtualInputManager")
 
 local PlaceUnit = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit")
 
@@ -14,6 +15,7 @@ local PlaceUnit = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild
 local placedUnits = {}
 local lastPositions = {}
 local forceRestart = false
+local autoSkipPos = Vector2.new(453.047119140625, 65.18000030517578)
 
 -- ===============================
 -- 🔹 Cleanup ฟังก์ชัน
@@ -166,6 +168,15 @@ local function ChooseMode()
 end
 
 -- ===============================
+-- 🔹 Auto Skip
+-- ===============================
+local function autoSkip()
+	VIM:SendMouseButtonEvent(autoSkipPos.X, autoSkipPos.Y, 0, true, game, 1)
+	task.wait()
+	VIM:SendMouseButtonEvent(autoSkipPos.X, autoSkipPos.Y, 0, false, game, 1)
+end
+
+-- ===============================
 -- 🔁 Restart Game
 -- ===============================
 local function again()
@@ -193,6 +204,7 @@ local function runSingleGame()
 	cleanup()
 	ChooseMode()
 	task.wait(5)
+	autoSkip() -- กด Skip ก่อนเริ่มเกม
 
 	for i = 1, 15 do
 		if forceRestart then break end
@@ -211,8 +223,10 @@ local function runSingleGame()
 	end
 
 	if forceRestart then return end
+	-- Auto skip ระหว่างเกม (loop เล็ก)
 	while not forceRestart do
-		task.wait(0.5)
+		autoSkip()
+		task.wait(2) -- กด skip ทุก 2 วินาที
 	end
 end
 
