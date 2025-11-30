@@ -1,5 +1,5 @@
 -- ===============================
--- 🎮 Roblox Auto Game Loop Script (Tomato Version – Extended)
+-- 🎮 Roblox Auto Game Loop Script (Tomato Version – Extended & Random)
 -- ===============================
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -39,9 +39,16 @@ end
 -- ===============================
 -- 🔹 ฟังก์ชันวาง Tomato
 -- ===============================
-local function placeUnitTomato(unitKey, basePos)
-	local newPos = randomPositionAround(basePos)
-	lastPositions[unitKey] = newPos
+local function placeUnitTomato(unitKey, basePos, radius)
+	radius = radius or 0.15
+	local newPos
+	local attempts = 0
+
+	repeat
+		newPos = randomPositionAround(basePos, radius)
+		attempts += 1
+	until lastPositions[unitKey] ~= newPos or attempts > 10
+
 	local ok, err = pcall(function()
 		PlaceUnit:InvokeServer("unit_tomato_plant", {
 			Valid = true,
@@ -53,32 +60,35 @@ local function placeUnitTomato(unitKey, basePos)
 		})
 	end)
 	if not ok then warn("PlaceUnit failed:", err) end
+
+	lastPositions[unitKey] = newPos
 	return newPos
 end
 
 -- ===============================
--- 🔹 จุด base ของ Tomato (รวม 15 ตำแหน่ง)
+-- 🔹 จุด base ของ Tomato (15 ตำแหน่ง)
 -- ===============================
 local unitBases = {
-	toma1 = Vector3.new(-331.2817, 61.6803, -132.8616),
-	toma2 = Vector3.new(-331.5735, 61.6803, -128.9906),
-	toma3 = Vector3.new(-327.7277, 61.6803, -132.9896),
-	toma4 = Vector3.new(-327.8808, 61.6803, -128.7868),
-	toma5 = Vector3.new(-325.9501, 61.6803, -129.1650),
-	toma6 = Vector3.new(-325.9155, 61.6803, -133.3724),
-	toma7  = Vector3.new(-308.5768737792969, 61.680305, -140.82171630859375),
-	toma8  = Vector3.new(-311.57550048828125, 61.680305, -140.97103881835938),
-	toma9  = Vector3.new(-308.37445068359375, 61.680305, -143.71533203125),
-	toma10 = Vector3.new(-308.50335693359375, 61.680305, -147.10491943359375),
-	toma11 = Vector3.new(-314.452392578125, 61.680305, -140.98892211914062),
-	toma12 = Vector3.new(-362.9935302734375, 61.680305, -177.93804931640625),
-	toma13 = Vector3.new(-363.2125549316406, 61.680305, -181.3274688720703),
-	toma14 = Vector3.new(-363.40838623046875, 61.680305, -185.37889099121094),
-	toma15 = Vector3.new(-338.7796630859375, 61.680305, -217.81846618652344)
+	toma1  = Vector3.new(-331.2817, 61.6803, -132.8616),
+	toma2  = Vector3.new(-331.5735, 61.6803, -128.9906),
+	toma3  = Vector3.new(-327.7277, 61.6803, -132.9896),
+	toma4  = Vector3.new(-327.8808, 61.6803, -128.7868),
+	toma5  = Vector3.new(-325.9501, 61.6803, -129.1650),
+	toma6  = Vector3.new(-325.9155, 61.6803, -133.3724),
+	toma7  = Vector3.new(-308.5768, 61.6803, -140.8217),
+	toma8  = Vector3.new(-311.5755, 61.6803, -140.9710),
+	toma9  = Vector3.new(-308.3744, 61.6803, -143.7153),
+	toma10 = Vector3.new(-308.5033, 61.6803, -147.1049),
+	toma11 = Vector3.new(-314.4523, 61.6803, -140.9889),
+	toma12 = Vector3.new(-362.9935, 61.6803, -177.9380),
+	toma13 = Vector3.new(-363.2125, 61.6803, -181.3274),
+	toma14 = Vector3.new(-363.4083, 61.6803, -185.3788),
+	toma15 = Vector3.new(-338.7796, 61.6803, -217.8184)
 }
 
--- ฟังก์ชันวางแยกแต่ละตำแหน่ง
-local function placeToma(n) return placeUnitTomato("toma"..n, unitBases["toma"..n]) end
+local function placeToma(n)
+	return placeUnitTomato("toma"..n, unitBases["toma"..n])
+end
 
 -- ===============================
 -- 🔹 ฟังก์ชันช่วย parse number
@@ -167,11 +177,14 @@ end
 -- ===============================
 -- ⚠ Event – แก้ปัญหา Event ซ้อน
 -- ===============================
-if ReplicatedStorage.RemoteEvents:FindFirstChild("ShowGameEnd") then
-	ReplicatedStorage.RemoteEvents.ShowGameEnd.OnClientEvent:Connect(function()
+local gameEndConn = nil
+local function setupEvents()
+	if gameEndConn then gameEndConn:Disconnect() end
+	gameEndConn = ReplicatedStorage.RemoteEvents.ShowGameEnd.OnClientEvent:Connect(function()
 		forceRestart = true
 	end)
 end
+setupEvents()
 
 -- ===============================
 -- 🎯 One Game Loop (1 รอบเกม)
