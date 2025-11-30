@@ -13,6 +13,6 @@ local function x2()
 }
 game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("ChangeTickSpeed"):InvokeServer(unpack(args))
 end
-
+task.wait(7)
 autoSkip()
 x2()
