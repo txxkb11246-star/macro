@@ -1,5 +1,5 @@
 -- ===============================
--- 🎮 Roblox Auto Game Loop Script (Tomato Full Version)
+-- 🎮 Roblox Auto Game Loop Script (Tomato Full Version - FIXED)
 -- ===============================
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -43,7 +43,33 @@ local function randomPositionAround(pos, radius)
 end
 
 -- ===============================
--- 🔹 place unit (แบบเดียวกับ rafflesia)
+-- 🔥 หา Unit ID จากตำแหน่ง (100% ทำงาน)
+-- ===============================
+local function waitForUnitIdByPosition(pos, timeout)
+	timeout = timeout or 15
+	local start = tick()
+
+	while tick() - start < timeout do
+		if forceRestart then return nil end
+
+		for _, unit in pairs(Workspace.Map.Entities:GetChildren()) do
+			local idAttr = unit:GetAttribute("ID")
+			if idAttr and not placedUnits[idAttr] then
+				if (unit:GetPivot().Position - pos).Magnitude < 3 then
+					placedUnits[idAttr] = unit
+					return idAttr
+				end
+			end
+		end
+
+		task.wait(0.2)
+	end
+
+	return nil
+end
+
+-- ===============================
+-- 🔹 Place Unit แบบ Tomato
 -- ===============================
 local function placeUnitTomato(unitKey, basePos, radius)
 	radius = radius or 0.15
@@ -70,10 +96,38 @@ local function placeUnitTomato(unitKey, basePos, radius)
 		)
 	end)
 
-	if not ok then warn("PlaceUnit failed:", err) end
+	if not ok then warn("PlaceUnit tomato failed:", err) end
 
 	lastPositions[unitKey] = newPos
 	return newPos
+end
+
+-- ===============================
+-- 🔥 placeUnitSafe ใช้ตำแหน่งเพื่อหา ID
+-- ===============================
+local function placeUnitSafe(pos)
+	local id
+	for attempt = 1, 3 do
+		if forceRestart then return nil end
+
+		PlaceUnit:InvokeServer(
+			"unit_tomato_plant",
+			{
+				Valid = true,
+				PathIndex = 1,
+				Position = pos,
+				DistanceAlongPath = 0,
+				CF = CFrame.new(pos),
+				Rotation = 180
+			}
+		)
+
+		id = waitForUnitIdByPosition(pos, 12)
+		if id then return id end
+	end
+
+	warn("❌ วาง tomato แล้วหา ID ไม่เจอ")
+	return nil
 end
 
 -- ===============================
@@ -96,7 +150,16 @@ local function placeToma5() return placeUnitTomato("toma5", unitBases.toma5) end
 local function placeToma6() return placeUnitTomato("toma6", unitBases.toma6) end
 
 -- ===============================
--- 🔥 Tracking + Unit ID
+-- 🔥 Upgrade
+-- ===============================
+local function upgradeUnitById(id)
+	if placedUnits[id] then
+		ReplicatedStorage.RemoteFunctions.UpgradeUnit:InvokeServer(id)
+	end
+end
+
+-- ===============================
+-- 💰 รอเงิน
 -- ===============================
 local function parseNumber(str)
 	str = tostring(str or "")
@@ -113,61 +176,6 @@ local function waitUntilCash(target)
 		local now = parseNumber(cashLabel.Text)
 		if now >= target then break end
 		task.wait(0.5)
-	end
-end
-
-local function waitForUnitId(unitName, timeout)
-	timeout = timeout or 15
-	local start = tick()
-
-	while tick() - start < timeout do
-		if forceRestart then return nil end
-
-		for _, unit in pairs(Workspace.Map.Entities:GetChildren()) do
-			local idAttr = unit:GetAttribute("ID")
-			if unit.Name == unitName and idAttr and not placedUnits[idAttr] then
-				placedUnits[idAttr] = unit
-				return idAttr
-			end
-		end
-
-		task.wait(0.2)
-	end
-
-	return nil
-end
-
-local function placeUnitSafe(pos)
-	local id
-	for attempt = 1, 3 do
-		if forceRestart then return nil end
-
-		PlaceUnit:InvokeServer(
-			"unit_tomato_plant",
-			{
-				Valid = true,
-				PathIndex = 1,
-				Position = pos,
-				DistanceAlongPath = 0,
-				CF = CFrame.new(pos),
-				Rotation = 180
-			}
-		)
-
-		id = waitForUnitId("unit_tomato_plant", 15)
-		if id then return id end
-	end
-
-	warn("❌ วาง unit tomato ไม่สำเร็จ")
-	return nil
-end
-
--- ===============================
--- 🔥 Upgrade
--- ===============================
-local function upgradeUnitById(id)
-	if placedUnits[id] then
-		ReplicatedStorage.RemoteFunctions.UpgradeUnit:InvokeServer(id)
 	end
 end
 
@@ -207,75 +215,26 @@ local function runSingleGame()
 
 	ChooseMode()
 	task.wait(5)
-	local pos1 = placeToma1()
-	local id1 = placeUnitSafe(pos1)
-	if forceRestart then return end
-    waitUntilCash(125)
-    upgradeUnitById(id1)
-    waitUntilCash(175)
-    upgradeUnitById(id1)
-    waitUntilCash(350)
-    upgradeUnitById(id1)
-    waitUntilCash(500)
-    upgradeUnitById(id1)
-	local pos2 = placeToma2()
-	local id2 = placeUnitSafe(pos2)
-	if forceRestart then return end
-    waitUntilCash(125)
-    upgradeUnitById(id2)
-    waitUntilCash(175)
-    upgradeUnitById(id2)
-    waitUntilCash(350)
-    upgradeUnitById(id2)
-    waitUntilCash(500)
-    upgradeUnitById(id2)
-	local pos3 = placeToma3()
-	local id3 = placeUnitSafe(pos3)
-	if forceRestart then return end
-    waitUntilCash(125)
-    upgradeUnitById(id3)
-    waitUntilCash(175)
-    upgradeUnitById(id3)
-    waitUntilCash(350)
-    upgradeUnitById(id3)
-    waitUntilCash(500)
-    upgradeUnitById(id3)
-	local pos4 = placeToma4()
-	local id4 = placeUnitSafe(pos4)
-	if forceRestart then return end
-    waitUntilCash(125)
-    upgradeUnitById(id4)
-    waitUntilCash(175)
-    upgradeUnitById(id4)
-    waitUntilCash(350)
-    upgradeUnitById(id4)
-    waitUntilCash(500)
-    upgradeUnitById(id4)
-	local pos5 = placeToma5()
-	local id5 = placeUnitSafe(pos5)
-	if forceRestart then return end
-    waitUntilCash(125)
-    upgradeUnitById(id5)
-    waitUntilCash(175)
-    upgradeUnitById(id5)
-    waitUntilCash(350)
-    upgradeUnitById(id5)
-    waitUntilCash(500)
-    upgradeUnitById(id5)
-	local pos6 = placeToma6()
-	local id6 = placeUnitSafe(pos6)
-	if forceRestart then return end
-    waitUntilCash(125)
-    upgradeUnitById(6)
-    waitUntilCash(175)
-    upgradeUnitById(6)
-    waitUntilCash(350)
-    upgradeUnitById(6)
-    waitUntilCash(500)
-    upgradeUnitById(6)
-	while not forceRestart do
-		task.wait(0.5)
+
+	-- วาง + อัพเกรดทั้งหมด 6 ตัว
+	local ids = {}
+
+	for i = 1, 6 do
+		if forceRestart then return end
+
+		local pos = _G["placeToma"..i]()
+		local id = placeUnitSafe(pos)
+		ids[i] = id
+
+		if id then
+			waitUntilCash(125); upgradeUnitById(id)
+			waitUntilCash(175); upgradeUnitById(id)
+			waitUntilCash(350); upgradeUnitById(id)
+			waitUntilCash(500); upgradeUnitById(id)
+		end
 	end
+
+	while not forceRestart do task.wait(0.5) end
 end
 
 -- ===============================
