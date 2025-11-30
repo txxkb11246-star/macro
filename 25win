@@ -174,13 +174,6 @@ local function again()
 	end)
 end
 
-local function x2()
-    local args = {
-	2
-}
-game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("ChangeTickSpeed"):InvokeServer(unpack(args))
-end
-
 -- ===============================
 -- ⚠ Event – แก้ปัญหา Event ซ้อน
 -- ===============================
