@@ -1,0 +1,18 @@
+local VIM = game:GetService("VirtualInputManager")
+local autoSkipPos = Vector2.new(453.047119140625, 65.18000030517578)
+
+local function autoSkip()
+    VIM:SendMouseButtonEvent(autoSkipPos.X, autoSkipPos.Y, 0, true, game, 1)
+    task.wait()
+    VIM:SendMouseButtonEvent(autoSkipPos.X, autoSkipPos.Y, 0, false, game, 1)
+end
+
+local function x2()
+    local args = {
+	2
+}
+game:GetService("ReplicatedStorage"):WaitForChild("RemoteFunctions"):WaitForChild("ChangeTickSpeed"):InvokeServer(unpack(args))
+end
+
+autoSkip()
+x2()
