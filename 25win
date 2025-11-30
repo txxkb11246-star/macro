@@ -210,32 +210,69 @@ local function runSingleGame()
 	local pos1 = placeToma1()
 	local id1 = placeUnitSafe(pos1)
 	if forceRestart then return end
-
+    waitUntilCash(125)
+    upgradeUnitById(1)
+    waitUntilCash(175)
+    upgradeUnitById(1)
+    waitUntilCash(350)
+    upgradeUnitById(1)
+    waitUntilCash(500)
+    upgradeUnitById(1)
 	local pos2 = placeToma2()
 	local id2 = placeUnitSafe(pos2)
 	if forceRestart then return end
-
+    waitUntilCash(125)
+    upgradeUnitById(2)
+    waitUntilCash(175)
+    upgradeUnitById(2)
+    waitUntilCash(350)
+    upgradeUnitById(2)
+    waitUntilCash(500)
+    upgradeUnitById(2)
 	local pos3 = placeToma3()
 	local id3 = placeUnitSafe(pos3)
 	if forceRestart then return end
-
+    waitUntilCash(125)
+    upgradeUnitById(3)
+    waitUntilCash(175)
+    upgradeUnitById(3)
+    waitUntilCash(350)
+    upgradeUnitById(3)
+    waitUntilCash(500)
+    upgradeUnitById(3)
 	local pos4 = placeToma4()
 	local id4 = placeUnitSafe(pos4)
 	if forceRestart then return end
-
+    waitUntilCash(125)
+    upgradeUnitById(4)
+    waitUntilCash(175)
+    upgradeUnitById(4)
+    waitUntilCash(350)
+    upgradeUnitById(4)
+    waitUntilCash(500)
+    upgradeUnitById(4)
 	local pos5 = placeToma5()
 	local id5 = placeUnitSafe(pos5)
 	if forceRestart then return end
-
+    waitUntilCash(125)
+    upgradeUnitById(5)
+    waitUntilCash(175)
+    upgradeUnitById(5)
+    waitUntilCash(350)
+    upgradeUnitById(5)
+    waitUntilCash(500)
+    upgradeUnitById(5)
 	local pos6 = placeToma6()
 	local id6 = placeUnitSafe(pos6)
 	if forceRestart then return end
-
-	-- example upgrades (ถ้าอยากเพิ่มบอกได้)
-	-- waitUntilCash(3000)
-	-- upgradeUnitById(id1)
-
-	-- wait end game
+    waitUntilCash(125)
+    upgradeUnitById(6)
+    waitUntilCash(175)
+    upgradeUnitById(6)
+    waitUntilCash(350)
+    upgradeUnitById(6)
+    waitUntilCash(500)
+    upgradeUnitById(6)
 	while not forceRestart do
 		task.wait(0.5)
 	end
