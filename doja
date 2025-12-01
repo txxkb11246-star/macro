@@ -234,5 +234,5 @@ end
 while true do
 	runSingleGame()
 	again()
-	task.wait(5)
+	task.wait(1)
 end
