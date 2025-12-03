@@ -37,7 +37,7 @@ local function randomPositionAround(pos, radius)
 end
 
 -- ===============================
--- 🔹 ฟังก์ชันวาง Tomato
+-- 🔹 ฟังก์ชันวาง Tomato + Print ตำแหน่ง
 -- ===============================
 local function placeUnitTomato(unitKey, basePos, radius)
 	radius = radius or 0.15
@@ -60,6 +60,9 @@ local function placeUnitTomato(unitKey, basePos, radius)
 		})
 	end)
 	if not ok then warn("PlaceUnit failed:", err) end
+
+	-- ✅ Print ตำแหน่งจริงที่วาง
+	print("[Tomato " .. unitKey .. "] วางที่ตำแหน่ง =", newPos)
 
 	lastPositions[unitKey] = newPos
 	return newPos
@@ -196,7 +199,7 @@ local function runSingleGame()
 
 	for i = 1, 15 do
 		if forceRestart then break end
-		local pos = placeToma(i)
+		local pos = placeToma(i)          -- วางและ print ตำแหน่ง
 		local id = placeUnitSafe(pos)
 		if id then
 			waitUntilCash(125)
