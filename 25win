@@ -14,7 +14,7 @@ local function cleanup()
 end
 
 local function randomPositionAround(pos, radius)
-	radius = radius or 5
+	radius = radius or 2
 	return Vector3.new(
 		pos.X + (math.random()*2 - 1) * radius,
 		pos.Y,
