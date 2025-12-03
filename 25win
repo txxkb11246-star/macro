@@ -32,7 +32,7 @@ local function placeUnitTomato(unitKey, basePos, radius)
 		attempts += 1
 	until lastPositions[unitKey] ~= newPos or attempts > 10
 
-	local ok, err = pcall(function()
+	pcall(function()
 		PlaceUnit:InvokeServer("unit_tomato_plant", {
 			Valid = true,
 			PathIndex = 1,
@@ -42,8 +42,6 @@ local function placeUnitTomato(unitKey, basePos, radius)
 			Rotation = 180
 		})
 	end)
-
-	print("[Tomato " .. unitKey .. "] =", newPos)
 
 	lastPositions[unitKey] = newPos
 	return newPos
