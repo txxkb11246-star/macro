@@ -1,46 +1,29 @@
--- ===============================
--- 🎮 Roblox Auto Game Loop Script (Tomato Version – Extended & Random)
--- ===============================
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local player = game.Players.LocalPlayer
-
 local PlaceUnit = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit")
 
--- ===============================
--- 🔧 ตัวแปรหลัก
--- ===============================
 local placedUnits = {}
 local lastPositions = {}
 local forceRestart = false
 
--- ===============================
--- 🔹 Cleanup ฟังก์ชัน
--- ===============================
 local function cleanup()
 	placedUnits = {}
 	lastPositions = {}
 	forceRestart = false
 end
 
--- ===============================
--- 🔹 ฟังก์ชันสุ่มตำแหน่ง
--- ===============================
 local function randomPositionAround(pos, radius)
-	radius = radius or 0.15
+	radius = radius or 5
 	return Vector3.new(
-		pos.X + (math.random()*2-1)*radius,
+		pos.X + (math.random()*2 - 1) * radius,
 		pos.Y,
-		pos.Z + (math.random()*2-1)*radius
+		pos.Z + (math.random()*2 - 1) * radius
 	)
 end
 
--- ===============================
--- 🔹 ฟังก์ชันวาง Tomato + Print ตำแหน่ง
--- ===============================
 local function placeUnitTomato(unitKey, basePos, radius)
-	radius = radius or 0.15
+	radius = radius or 5
 	local newPos
 	local attempts = 0
 
@@ -59,18 +42,13 @@ local function placeUnitTomato(unitKey, basePos, radius)
 			Rotation = 180
 		})
 	end)
-	if not ok then warn("PlaceUnit failed:", err) end
 
-	-- ✅ Print ตำแหน่งจริงที่วาง
-	print("[Tomato " .. unitKey .. "] วางที่ตำแหน่ง =", newPos)
+	print("[Tomato " .. unitKey .. "] =", newPos)
 
 	lastPositions[unitKey] = newPos
 	return newPos
 end
 
--- ===============================
--- 🔹 จุด base ของ Tomato (15 ตำแหน่ง)
--- ===============================
 local unitBases = {
 	toma1  = Vector3.new(-332.06634521484375, 61.68030548095703, -133.4410858154297),
 	toma2  = Vector3.new(-332.0302429199219, 61.68030548095703, -129.3596954345703),
@@ -93,21 +71,16 @@ local function placeToma(n)
 	return placeUnitTomato("toma"..n, unitBases["toma"..n])
 end
 
--- ===============================
--- 🔹 ฟังก์ชันช่วย parse number
--- ===============================
 local function parseNumber(str)
 	str = tostring(str or "")
 	local cleaned = str:gsub("[^%d]", "")
 	return tonumber(cleaned) or 0
 end
 
--- ===============================
--- 🔹 รอ cash
--- ===============================
 local function waitUntilCash(target)
 	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 	local cashLabel = gui.Screen.Bottom.CurrencyDisplay.Cash
+
 	while true do
 		if forceRestart then return end
 		local now = parseNumber(cashLabel.Text)
@@ -116,12 +89,10 @@ local function waitUntilCash(target)
 	end
 end
 
--- ===============================
--- 🔹 รอ unit ID หลังวาง
--- ===============================
 local function waitForUnitId(unitName, timeout)
 	timeout = timeout or 15
 	local start = tick()
+
 	while tick() - start < timeout do
 		if forceRestart then return nil end
 		for _, unit in pairs(Workspace.Map.Entities:GetChildren()) do
@@ -140,6 +111,7 @@ local function placeUnitSafe(pos)
 	local id
 	for attempt = 1, 3 do
 		if forceRestart then return nil end
+
 		PlaceUnit:InvokeServer("unit_tomato_plant", {
 			Valid = true,
 			PathIndex = 1,
@@ -148,10 +120,10 @@ local function placeUnitSafe(pos)
 			CF = CFrame.new(pos),
 			Rotation = 180
 		})
+
 		id = waitForUnitId("unit_tomato_plant", 15)
 		if id then return id end
 	end
-	warn("❌ วาง unit tomato ไม่สำเร็จ")
 	return nil
 end
 
@@ -161,37 +133,29 @@ local function upgradeUnitById(id)
 	end
 end
 
--- ===============================
--- 🔹 เลือกโหมด
--- ===============================
 local function ChooseMode()
 	ReplicatedStorage.RemoteFunctions.PlaceDifficultyVote:InvokeServer("dif_easy")
 end
 
--- ===============================
--- 🔁 Restart Game
--- ===============================
 local function again()
 	pcall(function()
 		ReplicatedStorage.RemoteFunctions.RestartGame:InvokeServer()
 	end)
 end
 
--- ===============================
--- ⚠ Event – แก้ปัญหา Event ซ้อน
--- ===============================
 local gameEndConn = nil
 local function setupEvents()
-	if gameEndConn then gameEndConn:Disconnect() end
+	if gameEndConn then
+		gameEndConn:Disconnect()
+	end
+
 	gameEndConn = ReplicatedStorage.RemoteEvents.ShowGameEnd.OnClientEvent:Connect(function()
 		forceRestart = true
 	end)
 end
+
 setupEvents()
 
--- ===============================
--- 🎯 One Game Loop (1 รอบเกม)
--- ===============================
 local function runSingleGame()
 	cleanup()
 	ChooseMode()
@@ -199,8 +163,10 @@ local function runSingleGame()
 
 	for i = 1, 15 do
 		if forceRestart then break end
-		local pos = placeToma(i)          -- วางและ print ตำแหน่ง
+
+		local pos = placeToma(i)
 		local id = placeUnitSafe(pos)
+
 		if id then
 			waitUntilCash(125)
 			upgradeUnitById(id)
@@ -213,15 +179,11 @@ local function runSingleGame()
 		end
 	end
 
-	if forceRestart then return end
 	while not forceRestart do
 		task.wait(0.5)
 	end
 end
 
--- ===============================
--- 🚀 Main Loop
--- ===============================
 while true do
 	runSingleGame()
 	again()
