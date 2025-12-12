@@ -286,7 +286,7 @@ local function runSingleGame()
 	cleanup()
 
 	Info("runSingleGame: starting new run")
-	--ChooseMode()--
+	ChooseMode()
 	task.wait(5)
 	if forceRestart then
 		Warn("runSingleGame aborted early after ChooseMode due to forceRestart")
