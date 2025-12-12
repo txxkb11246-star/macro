@@ -1,32 +1,19 @@
--- ===============================
--- 🎮 Roblox Auto Game Loop Script (Fixed Restart + Memory Safe)
--- ===============================
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
 local player = game.Players.LocalPlayer
 
 local PlaceUnit = ReplicatedStorage:WaitForChild("RemoteFunctions"):WaitForChild("PlaceUnit")
 
--- ===============================
--- 🔧 ตัวแปรหลัก
--- ===============================
 local placedUnits = {}
 local lastPositions = { raff1=nil, raff2=nil, raff3=nil }
 local forceRestart = false
 
--- ===============================
--- 🔹 Cleanup ฟังก์ชัน
--- ===============================
 local function cleanup()
 	placedUnits = {}
 	lastPositions = { raff1=nil, raff2=nil, raff3=nil }
 	forceRestart = false
 end
 
--- ===============================
--- 🔹 ฟังชันสุ่มตำแหน่ง
--- ===============================
 local function randomPositionAround(pos, radius)
 	radius = radius or 5
 	return Vector3.new(
@@ -36,9 +23,6 @@ local function randomPositionAround(pos, radius)
 	)
 end
 
--- ===============================
--- 🔹 ฟังก์ชันวาง raff
--- ===============================
 local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist, radius)
 	radius = radius or 5
 	local newPos
@@ -51,7 +35,7 @@ local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist
 
 	local distanceAlong = (minDist or 7) + math.random() * ((maxDist or 10) - (minDist or 7))
 
-	local ok, err = pcall(function()
+	pcall(function()
 		PlaceUnit:InvokeServer(
 			"unit_rafflesia",
 			{
@@ -65,15 +49,10 @@ local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist
 		)
 	end)
 
-	if not ok then warn("PlaceUnit failed:", err) end
-
 	lastPositions[unitName] = newPos
 	return newPos
 end
 
--- ===============================
--- 🔹 จุด base ของหน่วย
--- ===============================
 local unitBases = {
 	raff1 = Vector3.new(42.814, -21.75, -45.892),
 	raff2 = Vector3.new(-44.658, -21.75, -43.475),
@@ -84,9 +63,6 @@ local function placeRaff1() return placeUnitRafflesia("raff1", 1, unitBases.raff
 local function placeRaff2() return placeUnitRafflesia("raff2", 2, unitBases.raff2, 21, 24, 5) end
 local function placeRaff3() return placeUnitRafflesia("raff3", 1, unitBases.raff3, 7, 10, 5) end
 
--- ===============================
--- 🔥 Tracking unit + upgrade
--- ===============================
 local function parseNumber(str)
 	str = tostring(str or "")
 	local cleaned = str:gsub("[^%d]", "")
@@ -145,7 +121,6 @@ local function placeUnitSafe(position, pathIndex)
 		if id then return id end
 	end
 
-	warn("วาง unit ไม่สำเร็จ")
 	return nil
 end
 
@@ -155,25 +130,16 @@ local function upgradeUnitById(id)
 	end
 end
 
--- ===============================
--- 🔥 โหมดเกม
--- ===============================
 local function ChooseMode()
 	ReplicatedStorage.RemoteFunctions.PlaceDifficultyVote:InvokeServer("dif_apocalypse")
 end
 
--- ===============================
--- 🔁 Restart Game
--- ===============================
 local function again()
 	pcall(function()
 		ReplicatedStorage.RemoteFunctions.RestartGame:InvokeServer()
 	end)
 end
 
--- ===============================
--- ⚠ Event – รีสตาร์ททันทีเมื่อแพ้/ชนะ
--- ===============================
 local gameEndConn = nil
 
 local function setupEvents()
@@ -188,9 +154,6 @@ end
 
 setupEvents()
 
--- ===============================
--- 🎯 One Game Loop (1 รอบเกม)
--- ===============================
 local function runSingleGame()
 	cleanup()
 
@@ -198,26 +161,22 @@ local function runSingleGame()
 	task.wait(5)
 	if forceRestart then return end
 
-	-- raff1
 	local pos1 = placeRaff1()
 	local id1 = placeUnitSafe(pos1, 1)
 	if forceRestart then return end
 
-	-- raff2
 	waitUntilCash(1250)
 	if forceRestart then return end
 	local pos2 = placeRaff2()
 	local id2 = placeUnitSafe(pos2, 2)
 	if forceRestart then return end
 
-	-- raff3
 	waitUntilCash(9250)
 	if forceRestart then return end
 	local pos3 = placeRaff3()
 	local id3 = placeUnitSafe(pos3, 1)
 	if forceRestart then return end
 
-	-- upgrades
 	waitUntilCash(8000)
 	if forceRestart then return end
 	upgradeUnitById(id3)
@@ -229,15 +188,11 @@ local function runSingleGame()
 	if forceRestart then return end
 	upgradeUnitById(id2)
 
-	-- รอจนเปลี่ยน forceRestart
 	while not forceRestart do
 		task.wait(0.5)
 	end
 end
 
--- ===============================
--- 🚀 Main Loop
--- ===============================
 while true do
 	runSingleGame()
 	again()
