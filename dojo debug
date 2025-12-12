@@ -1,0 +1,373 @@
+-- Full runnable script with extra Cash==0 check and detailed debug logging
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+local player = game.Players.LocalPlayer
+
+-- Remote refs
+local RemoteFunctions = ReplicatedStorage:WaitForChild("RemoteFunctions")
+local PlaceUnit = RemoteFunctions:WaitForChild("PlaceUnit")
+local UpgradeUnit = RemoteFunctions:WaitForChild("UpgradeUnit")
+local PlaceDifficultyVote = RemoteFunctions:WaitForChild("PlaceDifficultyVote")
+local RestartGameRF = RemoteFunctions:WaitForChild("RestartGame") -- assuming name
+local ShowGameEndEvent = ReplicatedStorage:WaitForChild("RemoteEvents"):WaitForChild("ShowGameEnd")
+
+-- State
+local placedUnits = {}
+local lastPositions = { raff1=nil, raff2=nil, raff3=nil }
+local forceRestart = false
+local gameEndConn = nil
+
+-- Simple logger
+local function Log(level, ...)
+	local t = os.date("%X")
+	local msg = table.concat({...}," ")
+	print(string.format("[%s] %s: %s", t, level, msg))
+end
+
+local function Info(...) Log("INFO", ...) end
+local function Warn(...) Log("WARN", ...) end
+local function Error(...) Log("ERROR", ...) end
+
+local function cleanup()
+	Info("cleanup() — clearing placedUnits, lastPositions, forceRestart=false")
+	placedUnits = {}
+	lastPositions = { raff1=nil, raff2=nil, raff3=nil }
+	forceRestart = false
+end
+
+local function randomPositionAround(pos, radius)
+	radius = radius or 5
+	return Vector3.new(
+		pos.X + (math.random()*2-1)*radius,
+		pos.Y,
+		pos.Z + (math.random()*2-1)*radius
+	)
+end
+
+local function placeUnitRafflesia(unitName, pathIndex, basePos, minDist, maxDist, radius)
+	radius = radius or 5
+	local newPos
+	local attempts = 0
+
+	repeat
+		newPos = randomPositionAround(basePos, radius)
+		attempts = attempts + 1
+	until lastPositions[unitName] ~= newPos or attempts > 10
+
+	local distanceAlong = (minDist or 7) + math.random() * ((maxDist or 10) - (minDist or 7))
+
+	Info("Invoking PlaceUnit for", unitName, "pos", tostring(newPos), "pathIndex", pathIndex, "distanceAlong", string.format("%.2f", distanceAlong))
+
+	local ok, err = pcall(function()
+		PlaceUnit:InvokeServer(
+			"unit_rafflesia",
+			{
+				Valid = true,
+				PathIndex = pathIndex,
+				Position = newPos,
+				DistanceAlongPath = distanceAlong,
+				CF = CFrame.new(newPos),
+				Rotation = 180
+			}
+		)
+	end)
+
+	if not ok then
+		Warn("PlaceUnit invoke failed for", unitName, "error:", tostring(err))
+	else
+		Info("PlaceUnit invoke succeeded for", unitName)
+	end
+
+	lastPositions[unitName] = newPos
+	return newPos
+end
+
+local unitBases = {
+	raff1 = Vector3.new(42.814, -21.75, -45.892),
+	raff2 = Vector3.new(-44.658, -21.75, -43.475),
+	raff3 = Vector3.new(41.676, -21.75, -44.754)
+}
+
+local function placeRaff1() return placeUnitRafflesia("raff1", 1, unitBases.raff1, 7, 10, 5) end
+local function placeRaff2() return placeUnitRafflesia("raff2", 2, unitBases.raff2, 21, 24, 5) end
+local function placeRaff3() return placeUnitRafflesia("raff3", 1, unitBases.raff3, 7, 10, 5) end
+
+local function parseNumber(str)
+	str = tostring(str or "")
+	local cleaned = str:gsub("[^%d]", "")
+	return tonumber(cleaned) or 0
+end
+
+-- waitUntilCash now returns boolean:
+-- true = reached target
+-- false = aborted due to forceRestart or cash==0 (loss)
+local function waitUntilCash(target, timeout)
+	timeout = timeout or 60 -- optional timeout guard to avoid infinite loops
+	local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
+	local cashLabel = gui:WaitForChild("Screen").Bottom.CurrencyDisplay:WaitForChild("Cash")
+
+	local startTime = tick()
+	Info("Waiting until cash >=", target)
+
+	while true do
+		-- global abort
+		if forceRestart then
+			Warn("waitUntilCash aborted: forceRestart set externally")
+			return false
+		end
+
+		-- timeout guard
+		if tick() - startTime > timeout then
+			Warn("waitUntilCash timed out after", string.format("%.1f", timeout), "seconds; treating as abort")
+			forceRestart = true
+			return false
+		end
+
+		local text = cashLabel.Text or ""
+		-- If UI not loaded yet, wait a bit
+		if text == "" or text == "--" then
+			Info("Cash label not ready yet (text='" .. tostring(text) .. "'), waiting...")
+			task.wait(0.25)
+		else
+			local now = parseNumber(text)
+			Info("Current cash:", now, "Target:", target)
+
+			-- If cash hits zero -> real loss: force restart immediately
+			if now == 0 and target > 0 then
+				Warn("Detected Cash == 0 while waiting for target. Interpreting as LOSS. Setting forceRestart=true")
+				forceRestart = true
+				return false
+			end
+
+			if now >= target then
+				Info("Cash target reached:", now, ">=", target)
+				return true
+			end
+
+			task.wait(0.25)
+		end
+	end
+end
+
+local function waitForUnitId(unitName, timeout)
+	timeout = timeout or 15
+	local start = tick()
+	Info("Waiting for unit id of", unitName, "timeout", timeout)
+	while tick() - start < timeout do
+		if forceRestart then
+			Warn("waitForUnitId aborted: forceRestart set")
+			return nil
+		end
+
+		for _, unit in pairs(Workspace.Map.Entities:GetChildren()) do
+			local idAttr = unit:GetAttribute("ID")
+			if unit.Name == unitName and idAttr and not placedUnits[idAttr] then
+				placedUnits[idAttr] = unit
+				Info("Found unit", unitName, "with ID", tostring(idAttr))
+				return idAttr
+			end
+		end
+		task.wait(0.2)
+	end
+	Warn("waitForUnitId timeout for", unitName)
+	return nil
+end
+
+local function placeUnitSafe(position, pathIndex)
+	local id
+	for attempt = 1, 3 do
+		if forceRestart then
+			Warn("placeUnitSafe aborted on attempt", attempt, "forceRestart set")
+			return nil
+		end
+
+		Info("placeUnitSafe attempt", attempt, "pos", tostring(position), "pathIndex", pathIndex or 1)
+		local ok, err = pcall(function()
+			PlaceUnit:InvokeServer(
+				"unit_rafflesia",
+				{
+					Valid = true,
+					PathIndex = pathIndex or 1,
+					Position = position,
+					DistanceAlongPath = 0,
+					CF = CFrame.new(position),
+					Rotation = 0
+				}
+			)
+		end)
+
+		if not ok then
+			Warn("PlaceUnit invoke error on attempt", attempt, tostring(err))
+		else
+			Info("PlaceUnit invoked, waiting for entity to appear (ID)...")
+		end
+
+		id = waitForUnitId("unit_rafflesia", 15)
+		if id then
+			Info("placeUnitSafe succeeded, id =", id)
+			return id
+		end
+
+		Info("placeUnitSafe retrying (attempt)", attempt)
+		task.wait(0.2)
+	end
+
+	Error("placeUnitSafe failed after retries")
+	return nil
+end
+
+local function upgradeUnitById(id)
+	if not id then
+		Warn("upgradeUnitById called with nil id")
+		return false
+	end
+	if not placedUnits[id] then
+		Warn("upgradeUnitById: id not present in placedUnits:", id)
+		return false
+	end
+
+	Info("Upgrading unit id", id)
+	local ok, err = pcall(function()
+		UpgradeUnit:InvokeServer(id)
+	end)
+	if not ok then
+		Warn("UpgradeUnit invoke failed for id", id, "error:", tostring(err))
+		return false
+	end
+
+	Info("UpgradeUnit invoked for id", id)
+	return true
+end
+
+local function ChooseMode()
+	Info("Choosing mode: dif_apocalypse (vote)")
+	local ok, err = pcall(function()
+		PlaceDifficultyVote:InvokeServer("dif_apocalypse")
+	end)
+	if not ok then
+		Warn("PlaceDifficultyVote invoke failed:", tostring(err))
+	else
+		Info("PlaceDifficultyVote invoked")
+	end
+end
+
+local function again()
+	Info("Requesting RestartGame via RPC")
+	local ok, err = pcall(function()
+		RestartGameRF:InvokeServer()
+	end)
+	if not ok then
+		Warn("RestartGame RPC failed:", tostring(err))
+	else
+		Info("RestartGame RPC invoked")
+	end
+end
+
+local function setupEvents()
+	-- disconnect previous
+	if gameEndConn then
+		gameEndConn:Disconnect()
+		gameEndConn = nil
+		Info("Previous ShowGameEnd connection disconnected")
+	end
+
+	-- Connect ShowGameEnd as primary trigger for forceRestart
+	gameEndConn = ShowGameEndEvent.OnClientEvent:Connect(function()
+		Warn("ShowGameEnd event fired -> setting forceRestart = true")
+		forceRestart = true
+	end)
+	Info("Connected ShowGameEnd event")
+end
+
+-- initial setup
+setupEvents()
+
+local function runSingleGame()
+	cleanup()
+
+	Info("runSingleGame: starting new run")
+	ChooseMode()
+	task.wait(5)
+	if forceRestart then
+		Warn("runSingleGame aborted early after ChooseMode due to forceRestart")
+		return
+	end
+
+	-- place raff1
+	local pos1 = placeRaff1()
+	if not pos1 then
+		Warn("Failed to compute pos1; aborting run")
+		forceRestart = true
+		return
+	end
+	local id1 = placeUnitSafe(pos1, 1)
+	if forceRestart then
+		Warn("Aborting after placing raff1 due to forceRestart")
+		return
+	end
+
+	-- wait for 1250
+	if not waitUntilCash(1250, 60) then
+		Warn("Aborting after waitUntilCash(1250) (likely forceRestart or cash==0)")
+		return
+	end
+
+	-- place raff2
+	local pos2 = placeRaff2()
+	local id2 = placeUnitSafe(pos2, 2)
+	if forceRestart then
+		Warn("Aborting after placing raff2 due to forceRestart")
+		return
+	end
+
+	-- wait for 9250
+	if not waitUntilCash(9250, 120) then
+		Warn("Aborting after waitUntilCash(9250) (likely forceRestart or cash==0)")
+		return
+	end
+
+	-- place raff3
+	local pos3 = placeRaff3()
+	local id3 = placeUnitSafe(pos3, 1)
+	if forceRestart then
+		Warn("Aborting after placing raff3 due to forceRestart")
+		return
+	end
+
+	-- wait for 8000 then upgrade id3
+	if not waitUntilCash(8000, 120) then
+		Warn("Aborting before upgrade id3 due to forceRestart or cash==0")
+		return
+	end
+	upgradeUnitById(id3)
+
+	-- small wait
+	task.wait(15)
+	if forceRestart then
+		Warn("Aborting after waiting 15s due to forceRestart")
+		return
+	end
+
+	-- wait for 8000 then upgrade id2
+	if not waitUntilCash(8000, 120) then
+		Warn("Aborting before upgrade id2 due to forceRestart or cash==0")
+		return
+	end
+	upgradeUnitById(id2)
+
+	Info("Game run finished main sequence; waiting for end (forceRestart or ShowGameEnd)")
+	while not forceRestart do
+		task.wait(0.5)
+	end
+	Info("Exiting runSingleGame due to forceRestart =", tostring(forceRestart))
+end
+
+-- Main loop
+while true do
+	Info("==== New loop iteration ====")
+	runSingleGame()
+	Info("Calling again() to request server-side restart")
+	again()
+	Info("Sleeping 1 second before next run")
+	task.wait(1)
+end
