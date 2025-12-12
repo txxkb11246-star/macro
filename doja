@@ -1,5 +1,5 @@
 -- ===============================
--- 🎮 Roblox Auto Game Loop Script (Fixed Memory Leak Version)
+-- 🎮 Roblox Auto Game Loop Script (Fixed Restart + Memory Safe)
 -- ===============================
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -101,7 +101,7 @@ local function waitUntilCash(target)
 		if forceRestart then return end
 		local now = parseNumber(cashLabel.Text)
 		if now >= target then break end
-		task.wait(0.5)
+		task.wait(0.3)
 	end
 end
 
@@ -172,7 +172,7 @@ local function again()
 end
 
 -- ===============================
--- ⚠ Event – แก้ปัญหา Event ซ้อน
+-- ⚠ Event – รีสตาร์ททันทีเมื่อแพ้/ชนะ
 -- ===============================
 local gameEndConn = nil
 
@@ -192,10 +192,11 @@ setupEvents()
 -- 🎯 One Game Loop (1 รอบเกม)
 -- ===============================
 local function runSingleGame()
-	cleanup()  -- ล้างตัวแปรก่อนเริ่มรอบใหม่
+	cleanup()
 
 	ChooseMode()
 	task.wait(5)
+	if forceRestart then return end
 
 	-- raff1
 	local pos1 = placeRaff1()
@@ -204,32 +205,38 @@ local function runSingleGame()
 
 	-- raff2
 	waitUntilCash(1250)
+	if forceRestart then return end
 	local pos2 = placeRaff2()
 	local id2 = placeUnitSafe(pos2, 2)
 	if forceRestart then return end
 
 	-- raff3
 	waitUntilCash(9250)
+	if forceRestart then return end
 	local pos3 = placeRaff3()
 	local id3 = placeUnitSafe(pos3, 1)
 	if forceRestart then return end
 
 	-- upgrades
 	waitUntilCash(8000)
+	if forceRestart then return end
 	upgradeUnitById(id3)
+
 	task.wait(15)
+	if forceRestart then return end
+
 	waitUntilCash(8000)
+	if forceRestart then return end
 	upgradeUnitById(id2)
 
-	-- รอเกมจบ
+	-- รอจนเปลี่ยน forceRestart
 	while not forceRestart do
 		task.wait(0.5)
 	end
 end
 
-
 -- ===============================
--- 🚀 Main Loop – ไม่ซ้อน loop, ไม่กิน RAM
+-- 🚀 Main Loop
 -- ===============================
 while true do
 	runSingleGame()
