@@ -136,4 +136,4 @@ end
 -- ===============================
 -- ClickButton("Trade")
 -- ClickButton("UnitMore")
-ClickButton("unit_rafflesia")
+ClickButton("UnitRafflesia")
