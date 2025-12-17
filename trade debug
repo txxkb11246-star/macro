@@ -122,4 +122,4 @@ end
 -- ===============================
 -- ClickButton("Trade")
 -- ClickButton("UnitMore")
-ClickButton("Trade")
+ClickButton("UnitMore")
