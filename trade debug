@@ -1,5 +1,5 @@
 -- ===============================
--- VIM GUI CLICK SYSTEM (DEBUG)
+-- VIM GUI CLICK SYSTEM (FULL)
 -- ===============================
 
 -- Services
@@ -13,8 +13,9 @@ local player = Players.LocalPlayer
 -- ===============================
 -- CONFIG
 -- ===============================
-local DEBUG = true        -- เปิด / ปิด debug
-local CLICK_DELAY = 0.05 -- หน่วงเวลากดเมาส์
+local DEBUG = true
+local CLICK_DELAY = 0.05
+local SCROLL_DELAY = 0.1
 
 -- ===============================
 -- DEBUG PRINT
@@ -26,29 +27,43 @@ local function dprint(...)
 end
 
 -- ===============================
--- CORE : FIND GUI BY PATH
+-- FIND GUI BY PATH
 -- ===============================
 local function FindGuiByPath(path)
     dprint("Finding GUI path:", table.concat(path, " > "))
 
     local gui = player.PlayerGui
-
-    for i, name in ipairs(path) do
+    for _, name in ipairs(path) do
         dprint(" Waiting for:", name)
         gui = gui:WaitForChild(name)
         dprint("  Found:", gui:GetFullName())
     end
-
     return gui
 end
 
 -- ===============================
--- CORE : VIM CLICK
+-- ENSURE GUI IS VISIBLE (SCROLL)
+-- ===============================
+local function EnsureVisible(gui)
+    local current = gui.Parent
+
+    while current do
+        if current:IsA("ScrollingFrame") then
+            dprint("Scrolling:", current:GetFullName())
+            current.CanvasPosition =
+                Vector2.new(0, math.max(0, gui.AbsolutePosition.Y))
+            task.wait(SCROLL_DELAY)
+        end
+        current = current.Parent
+    end
+end
+
+-- ===============================
+-- VIM CLICK CORE
 -- ===============================
 local function VIM_Click(path)
     local gui = FindGuiByPath(path)
 
-    -- Safety
     if not gui:IsA("GuiObject") then
         warn("Target is not GuiObject:", gui:GetFullName())
         return nil
@@ -59,6 +74,9 @@ local function VIM_Click(path)
     gui.Active = true
     task.wait(0.05)
 
+    -- Ensure on screen
+    EnsureVisible(gui)
+
     -- Position
     local pos = gui.AbsolutePosition
     local size = gui.AbsoluteSize
@@ -67,7 +85,7 @@ local function VIM_Click(path)
     local x = pos.X + size.X / 2
     local y = pos.Y + size.Y / 2 + inset.Y
 
-    -- Debug info
+    -- Debug
     dprint("Clicking:", gui:GetFullName())
     dprint(" Position:", pos)
     dprint(" Size:", size)
@@ -84,7 +102,7 @@ local function VIM_Click(path)
 end
 
 -- ===============================
--- BUTTON LIST (เพิ่มปุ่มที่นี่)
+-- BUTTON REGISTRY (เพิ่มปุ่มที่นี่)
 -- ===============================
 local Buttons = {
 
@@ -98,26 +116,13 @@ local Buttons = {
     },
 
     UnitRafflesia = {
-    "GameGui",
-    "Screen",
-    "Middle",
-    "Trade",
-    "Inventory",
-    "Inventory",
-    "Frame",
-    "Items",
-    "Items",
-    "ScrollingFrame",
-    "unit_rafflesia"
-}
-
-    -- เพิ่มปุ่มใหม่ด้านล่าง
-    -- Example:
-    -- Confirm = { "GameGui","Screen","Popup","Confirm","Yes" }
+        "GameGui","Screen","Middle","Trade","Inventory","Inventory",
+        "Frame","Items","Items","ScrollingFrame","unit_rafflesia"
+    },
 }
 
 -- ===============================
--- PUBLIC FUNCTION
+-- PUBLIC CALL
 -- ===============================
 local function ClickButton(name)
     dprint("Request click:", name)
