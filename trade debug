@@ -97,6 +97,20 @@ local Buttons = {
         "Items","Left","Give","Items","ScrollingFrame","unit_more"
     },
 
+    UnitRafflesia = {
+    "GameGui",
+    "Screen",
+    "Middle",
+    "Trade",
+    "Inventory",
+    "Inventory",
+    "Frame",
+    "Items",
+    "Items",
+    "ScrollingFrame",
+    "unit_rafflesia"
+}
+
     -- เพิ่มปุ่มใหม่ด้านล่าง
     -- Example:
     -- Confirm = { "GameGui","Screen","Popup","Confirm","Yes" }
@@ -122,4 +136,4 @@ end
 -- ===============================
 -- ClickButton("Trade")
 -- ClickButton("UnitMore")
-ClickButton("UnitMore")
+ClickButton("unit_rafflesia")
