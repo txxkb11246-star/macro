@@ -1,65 +1,97 @@
--- ===============================
--- Universal Button Clicker
--- ===============================
+-- =====================================
+-- Auto Select + Equip Rafflesia (All-in-One)
+-- =====================================
 
+local Players = game:GetService("Players")
 local VIM = game:GetService("VirtualInputManager")
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
 
-local function clickButtonAuto(button)
-    if not button or not button:IsA("GuiButton") then
-        warn("Invalid button")
-        return false
-    end
-
-    -- 1) getconnections ทุก event
-    local events = {
-        "Activated",
-        "MouseButton1Click",
-        "MouseButton1Down",
-        "MouseButton1Up"
-    }
-
-    for _, ev in ipairs(events) do
-        local signal = button[ev]
-        if signal then
-            local conns = getconnections(signal)
-            if #conns > 0 then
-                print("✅ click via getconnections:", ev)
-                for _, c in ipairs(conns) do
-                    if c.Function then
-                        pcall(c.Function)
-                    end
-                end
-                return true
-            end
-        end
-    end
-
-    -- 2) firesignal (ถ้า executor รองรับ)
-    for _, ev in ipairs(events) do
-        local signal = button[ev]
-        if signal then
-            local ok = pcall(function()
-                firesignal(signal)
-            end)
-            if ok then
-                print("✅ click via firesignal:", ev)
-                return true
-            end
-        end
-    end
-
-    -- 3) VirtualInputManager (ไม้ตาย)
-    print("⚠️ fallback to VirtualInputManager")
-
-    local pos = button.AbsolutePosition
-    local size = button.AbsoluteSize
-
+-- ---------- Utils ----------
+local function clickGui(gui)
+    if not gui then return end
+    local pos = gui.AbsolutePosition
+    local size = gui.AbsoluteSize
     local x = pos.X + size.X / 2
     local y = pos.Y + size.Y / 2
-
     VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
     task.wait(0.05)
     VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
-
-    return true
 end
+
+local function waitForGameGui()
+    local gg
+    repeat
+        task.wait()
+        gg = PlayerGui:FindFirstChild("GameGui", true)
+    until gg
+    return gg
+end
+
+local function findInventoryScrollingFrame(GameGui)
+    for _, v in ipairs(GameGui:GetDescendants()) do
+        if v:IsA("ScrollingFrame") then
+            return v
+        end
+    end
+end
+
+-- ---------- Main ----------
+local TARGET = "rafflesia"
+
+local GameGui = waitForGameGui()
+local scroll = findInventoryScrollingFrame(GameGui)
+
+if not scroll then
+    warn("❌ ไม่พบ Inventory (ScrollingFrame) — เปิด Inventory ก่อน")
+    return
+end
+
+print("✅ Inventory found")
+
+-- 1) คลิกตัว unit (สำคัญที่สุด)
+local clickedItem = false
+for _, item in ipairs(scroll:GetChildren()) do
+    if item:IsA("Frame") then
+        for _, obj in ipairs(item:GetDescendants()) do
+            if obj:IsA("TextLabel")
+            and string.lower(obj.Text):find(TARGET) then
+                print("🎯 Found unit:", obj.Text)
+                clickGui(item)
+                clickedItem = true
+                break
+            end
+        end
+        if clickedItem then break end
+    end
+end
+
+if not clickedItem then
+    warn("❌ ไม่พบ rafflesia ใน Inventory")
+    return
+end
+
+-- 2) รอ แล้วกด Equip ถ้ามี (บางเกม auto-equip)
+task.wait(0.25)
+
+local equipButton
+for _, v in ipairs(GameGui:GetDescendants()) do
+    if v:IsA("GuiButton")
+    and v.Visible
+    and (
+        string.lower(v.Name):find("equip")
+        or (v:FindFirstChildWhichIsA("TextLabel") and string.lower(v:FindFirstChildWhichIsA("TextLabel").Text):find("equip"))
+    ) then
+        equipButton = v
+        break
+    end
+end
+
+if equipButton then
+    print("🟢 Click Equip")
+    clickGui(equipButton)
+else
+    print("ℹ️ ไม่พบปุ่ม Equip (เกมนี้ equip ตอนคลิก item)")
+end
+
+print("✅ Done")
