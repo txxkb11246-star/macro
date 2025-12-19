@@ -1,97 +1,65 @@
--- =====================================
--- Auto Select + Equip Rafflesia (All-in-One)
--- =====================================
+local DEBUG = true
+local function dprint(...)
+    if DEBUG then print("[DEBUG]", ...) end
+end
 
 local Players = game:GetService("Players")
-local VIM = game:GetService("VirtualInputManager")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
-local PlayerGui = player:WaitForChild("PlayerGui")
 
--- ---------- Utils ----------
-local function clickGui(gui)
-    if not gui then return end
-    local pos = gui.AbsolutePosition
-    local size = gui.AbsoluteSize
-    local x = pos.X + size.X / 2
-    local y = pos.Y + size.Y / 2
-    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
-    task.wait(0.05)
-    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
-end
+local InventoryFrame = player.PlayerGui
+    :WaitForChild("GameGui", true)
+    :WaitForChild("Screen", true)
+    :WaitForChild("Middle", true)
+    :WaitForChild("Inventory", true)
+    :WaitForChild("Inventory", true)
+    :WaitForChild("Frame", true)
+    :WaitForChild("Items", true)
+    :WaitForChild("Items", true)
+    :WaitForChild("ScrollingFrame", true)
 
-local function waitForGameGui()
-    local gg
-    repeat
-        task.wait()
-        gg = PlayerGui:FindFirstChild("GameGui", true)
-    until gg
-    return gg
-end
+local TradeRemote = ReplicatedStorage
+    :WaitForChild("RemoteFunctions")
+    :WaitForChild("TradeAddToOffer")
 
-local function findInventoryScrollingFrame(GameGui)
-    for _, v in ipairs(GameGui:GetDescendants()) do
-        if v:IsA("ScrollingFrame") then
+local function extractUniqueIdFromFunction(fn)
+    for _, v in pairs(debug.getupvalues(fn)) do
+        if type(v) == "string" and v:lower():find("unique") then
             return v
         end
-    end
-end
-
--- ---------- Main ----------
-local TARGET = "rafflesia"
-
-local GameGui = waitForGameGui()
-local scroll = findInventoryScrollingFrame(GameGui)
-
-if not scroll then
-    warn("❌ ไม่พบ Inventory (ScrollingFrame) — เปิด Inventory ก่อน")
-    return
-end
-
-print("✅ Inventory found")
-
--- 1) คลิกตัว unit (สำคัญที่สุด)
-local clickedItem = false
-for _, item in ipairs(scroll:GetChildren()) do
-    if item:IsA("Frame") then
-        for _, obj in ipairs(item:GetDescendants()) do
-            if obj:IsA("TextLabel")
-            and string.lower(obj.Text):find(TARGET) then
-                print("🎯 Found unit:", obj.Text)
-                clickGui(item)
-                clickedItem = true
-                break
+        if type(v) == "table" then
+            for _, v2 in pairs(v) do
+                if type(v2) == "string" and v2:lower():find("unique") then
+                    return v2
+                end
             end
         end
-        if clickedItem then break end
     end
 end
 
-if not clickedItem then
-    warn("❌ ไม่พบ rafflesia ใน Inventory")
-    return
-end
-
--- 2) รอ แล้วกด Equip ถ้ามี (บางเกม auto-equip)
-task.wait(0.25)
-
-local equipButton
-for _, v in ipairs(GameGui:GetDescendants()) do
-    if v:IsA("GuiButton")
-    and v.Visible
-    and (
-        string.lower(v.Name):find("equip")
-        or (v:FindFirstChildWhichIsA("TextLabel") and string.lower(v:FindFirstChildWhichIsA("TextLabel").Text):find("equip"))
-    ) then
-        equipButton = v
-        break
+local function getUniqueIdFromButton(button)
+    if not (button:IsA("ImageButton") or button:IsA("TextButton")) then
+        return nil
+    end
+    for _, conn in ipairs(getconnections(button.MouseButton1Click) or {}) do
+        if typeof(conn.Function) == "function" then
+            local uid = extractUniqueIdFromFunction(conn.Function)
+            if uid then return uid end
+        end
     end
 end
 
-if equipButton then
-    print("🟢 Click Equip")
-    clickGui(equipButton)
-else
-    print("ℹ️ ไม่พบปุ่ม Equip (เกมนี้ equip ตอนคลิก item)")
+local items = {}
+for _, item in ipairs(InventoryFrame:GetChildren()) do
+    local uid = getUniqueIdFromButton(item)
+    if uid then
+        print("[FOUND]", item.Name, uid)
+        table.insert(items, uid)
+    end
 end
 
-print("✅ Done")
+for _, uid in ipairs(items) do
+    print("[TRADE]", uid)
+    TradeRemote:InvokeServer(uid, false)
+    task.wait(0.25)
+end
