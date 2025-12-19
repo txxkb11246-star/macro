@@ -1,0 +1,75 @@
+-- ===============================
+-- Auto Select Rafflesia (Safe Version)
+-- ===============================
+
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
+
+-- รอ GameGui โผล่จริง
+local GameGui
+repeat
+    task.wait()
+    GameGui = PlayerGui:FindFirstChild("GameGui", true)
+until GameGui
+
+-- หา ScrollingFrame ของ Inventory แบบไม่พัง
+local ScrollingFrame
+for _, v in ipairs(GameGui:GetDescendants()) do
+    if v:IsA("ScrollingFrame") and v.Name == "ScrollingFrame" then
+        ScrollingFrame = v
+        break
+    end
+end
+
+if not ScrollingFrame then
+    error("❌ ไม่พบ ScrollingFrame (Inventory ยังไม่เปิด?)")
+end
+
+print("✅ Found ScrollingFrame:", ScrollingFrame:GetFullName())
+
+-- ===============================
+-- หา unit rafflesia และกดปุ่มจริง
+-- ===============================
+
+local TARGET = "rafflesia"
+local found = false
+
+for _, item in ipairs(ScrollingFrame:GetChildren()) do
+    if item:IsA("Frame") then
+        -- ตรวจชื่อจาก TextLabel
+        for _, obj in ipairs(item:GetDescendants()) do
+            if obj:IsA("TextLabel") then
+                if string.lower(obj.Text):find(TARGET) then
+                    print("✅ Found unit:", obj.Text)
+                    found = true
+
+                    -- หา TextButton ใน frame นี้
+                    local button = item:FindFirstChildWhichIsA("TextButton", true)
+                    if not button then
+                        error("❌ เจอ unit แต่ไม่พบปุ่ม")
+                    end
+
+                    -- กดปุ่มผ่าน logic จริง
+                    local connections = getconnections(button.Activated)
+                    if #connections == 0 then
+                        error("❌ ปุ่มไม่มี connections")
+                    end
+
+                    for _, conn in ipairs(connections) do
+                        if conn.Function then
+                            conn.Function()
+                        end
+                    end
+
+                    print("🎯 Equip rafflesia สำเร็จ")
+                    return
+                end
+            end
+        end
+    end
+end
+
+if not found then
+    warn("❌ ไม่พบ rafflesia ใน Inventory")
+end
