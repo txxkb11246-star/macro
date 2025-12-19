@@ -1,42 +1,65 @@
-local player = game:GetService("Players").LocalPlayer
-local gui = player:WaitForChild("PlayerGui")
+-- ===============================
+-- Universal Button Clicker
+-- ===============================
 
--- รอ GameGui
-local GameGui
-repeat task.wait() GameGui = gui:FindFirstChild("GameGui", true) until GameGui
+local VIM = game:GetService("VirtualInputManager")
 
--- หา ScrollingFrame
-local scroll
-for _, v in ipairs(GameGui:GetDescendants()) do
-    if v:IsA("ScrollingFrame") then
-        scroll = v
-        break
+local function clickButtonAuto(button)
+    if not button or not button:IsA("GuiButton") then
+        warn("Invalid button")
+        return false
     end
-end
 
-if not scroll then
-    warn("Inventory ยังไม่เปิด")
-    return
-end
+    -- 1) getconnections ทุก event
+    local events = {
+        "Activated",
+        "MouseButton1Click",
+        "MouseButton1Down",
+        "MouseButton1Up"
+    }
 
--- หา rafflesia แล้วกดปุ่ม
-for _, item in ipairs(scroll:GetChildren()) do
-    if item:IsA("Frame") then
-        for _, obj in ipairs(item:GetDescendants()) do
-            if obj:IsA("TextLabel")
-            and string.lower(obj.Text):find("rafflesia") then
-
-                print("🎯 Found rafflesia")
-
-                local button = item:FindFirstChildWhichIsA("GuiButton", true)
-                if button then
-                    clickButtonAuto(button)
-                else
-                    warn("ไม่พบปุ่มใน frame")
+    for _, ev in ipairs(events) do
+        local signal = button[ev]
+        if signal then
+            local conns = getconnections(signal)
+            if #conns > 0 then
+                print("✅ click via getconnections:", ev)
+                for _, c in ipairs(conns) do
+                    if c.Function then
+                        pcall(c.Function)
+                    end
                 end
-
-                return
+                return true
             end
         end
     end
+
+    -- 2) firesignal (ถ้า executor รองรับ)
+    for _, ev in ipairs(events) do
+        local signal = button[ev]
+        if signal then
+            local ok = pcall(function()
+                firesignal(signal)
+            end)
+            if ok then
+                print("✅ click via firesignal:", ev)
+                return true
+            end
+        end
+    end
+
+    -- 3) VirtualInputManager (ไม้ตาย)
+    print("⚠️ fallback to VirtualInputManager")
+
+    local pos = button.AbsolutePosition
+    local size = button.AbsoluteSize
+
+    local x = pos.X + size.X / 2
+    local y = pos.Y + size.Y / 2
+
+    VIM:SendMouseButtonEvent(x, y, 0, true, game, 0)
+    task.wait(0.05)
+    VIM:SendMouseButtonEvent(x, y, 0, false, game, 0)
+
+    return true
 end
