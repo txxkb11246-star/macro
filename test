@@ -1,5 +1,5 @@
 -- =========================================
--- AUTO TRADE CACHE : ID (REMOTE) + NAME (GUI)
+-- TRADE GIVE + RECEIVE UNIT TRACKER
 -- =========================================
 
 local Players = game:GetService("Players")
@@ -8,61 +8,71 @@ local player = Players.LocalPlayer
 
 local TradeAdd = RS.RemoteFunctions.TradeAddToOffer
 
--- GUI PATH (Give side)
-local GiveSF =
+-- GUI PATHS
+local TradeGui =
 	player.PlayerGui.GameGui.Screen.Middle.Trade
-	.Items.Container.Items.Left.Give.Items.ScrollingFrame
+local GiveSF =
+	TradeGui.Items.Container.Items.Left.Give.Items.ScrollingFrame
+local ReceiveSF =
+	TradeGui.Items.Container.Items.Right.Receive.Items.ScrollingFrame
 
--- Cache
-getgenv().CachedUnits = getgenv().CachedUnits or {}
+-- GLOBAL CACHE
+getgenv().TradeCache = {
+	Give = {},      -- [unitName] = { ids }
+	Receive = {}    -- { unitName1, unitName2 }
+}
 
-local function cache(name, id)
-	if not name or not id then return end
-	getgenv().CachedUnits[name] = getgenv().CachedUnits[name] or {}
+-- ===============================
+-- UTIL
+-- ===============================
 
-	for _, v in ipairs(getgenv().CachedUnits[name]) do
-		if v == id then
-			return
-		end
-	end
-
-	table.insert(getgenv().CachedUnits[name], id)
-	print("[CACHED]", name, id)
-end
-
--- หา "ชื่อ unit ล่าสุด" จาก Give GUI
-local function getLatestUnitName()
-	local items = GiveSF:GetChildren()
-	if #items == 0 then return nil end
-
-	-- item ล่าสุด (ตัวที่เพิ่งถูก add)
-	local last = items[#items]
-
-	-- หา TextLabel ที่เป็นชื่อ
-	for _, d in ipairs(last:GetDescendants()) do
+local function getUnitNameFromItem(item)
+	for _, d in ipairs(item:GetDescendants()) do
 		if d:IsA("TextLabel") and d.Text ~= "" then
 			return d.Text
 		end
 	end
-
 	return nil
 end
 
--- scan หา id แบบ recursive (กัน table ซ้อน)
-local function scanForId(value, callback)
-	if type(value) == "string" then
-		if string.find(value, "unique_") then
-			callback(value)
-		end
-	elseif type(value) == "table" then
-		for _, v in pairs(value) do
-			scanForId(v, callback)
+local function getLatestName(scrollingFrame)
+	local items = scrollingFrame:GetChildren()
+	if #items == 0 then return nil end
+	return getUnitNameFromItem(items[#items])
+end
+
+local function addGive(name, id)
+	if not name or not id then return end
+	getgenv().TradeCache.Give[name] =
+		getgenv().TradeCache.Give[name] or {}
+
+	for _, v in ipairs(getgenv().TradeCache.Give[name]) do
+		if v == id then return end
+	end
+
+	table.insert(getgenv().TradeCache.Give[name], id)
+	print("[GIVE]", name, id)
+end
+
+local function addReceive(name)
+	if not name then return end
+	table.insert(getgenv().TradeCache.Receive, name)
+	print("[RECEIVE]", name)
+end
+
+-- scan id (กัน table ซ้อน)
+local function scanId(v, cb)
+	if type(v) == "string" and string.find(v, "unique_") then
+		cb(v)
+	elseif type(v) == "table" then
+		for _, x in pairs(v) do
+			scanId(x, cb)
 		end
 	end
 end
 
 -- ===============================
--- REMOTE HOOK
+-- HOOK GIVE (REMOTE)
 -- ===============================
 
 local mt = getrawmetatable(game)
@@ -74,17 +84,25 @@ mt.__namecall = newcclosure(function(self, ...)
 	local method = getnamecallmethod()
 
 	if method == "InvokeServer" and self == TradeAdd then
-		-- รอ GUI อัปเดต 1 เฟรม
-		task.wait()
+		task.wait() -- รอ GUI อัปเดต
 
-		local unitName = getLatestUnitName()
-
-		scanForId(args, function(id)
-			cache(unitName or "UNKNOWN", id)
+		local unitName = getLatestName(GiveSF)
+		scanId(args, function(id)
+			addGive(unitName or "UNKNOWN", id)
 		end)
 	end
 
 	return old(self, ...)
 end)
 
-print("AUTO TRADE NAME+ID CACHE READY")
+-- ===============================
+-- HOOK RECEIVE (GUI)
+-- ===============================
+
+ReceiveSF.ChildAdded:Connect(function(child)
+	task.wait()
+	local name = getUnitNameFromItem(child)
+	addReceive(name)
+end)
+
+print("TRADE GIVE + RECEIVE TRACKER READY")
