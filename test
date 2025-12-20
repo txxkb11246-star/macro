@@ -1,89 +1,32 @@
--- ===============================
--- Roblox Auto Find uniqueId + Equip Unit
--- Client / Executor Script
--- ===============================
-
--- Services
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
 local player = Players.LocalPlayer
 
--- Remote
-local SetUnitEquipped = ReplicatedStorage
-	:WaitForChild("RemoteFunctions")
-	:WaitForChild("SetUnitEquipped")
-
--- Inventory GUI Path
 local InventoryPath =
-	player.PlayerGui
-	:WaitForChild("GameGui")
-	:WaitForChild("Screen")
-	:WaitForChild("Middle")
-	:WaitForChild("Inventory")
-	:WaitForChild("Inventory")
-	:WaitForChild("Frame")
-	:WaitForChild("Items")
-	:WaitForChild("Items")
-	:WaitForChild("ScrollingFrame")
+	player.PlayerGui.GameGui.Screen.Middle.Inventory.Inventory
+	.Frame.Items.Items.ScrollingFrame
 
--- ===============================
--- STEP 1 : หา uniqueId จาก Item
--- ===============================
-local function getUniqueIdFromItem(item)
-	-- 1) เช็ค Attribute ก่อน
-	if item:GetAttribute("uniqueId") then
-		return item:GetAttribute("uniqueId")
-	end
-
-	-- 2) เช็ค StringValue
-	for _, v in ipairs(item:GetChildren()) do
-		if v:IsA("StringValue") then
-			if string.find(v.Value, "unique") then
-				return v.Value
-			end
-		end
-	end
-
-	-- 3) เช็ค TextLabel / TextButton
-	for _, v in ipairs(item:GetDescendants()) do
-		if v:IsA("TextLabel") or v:IsA("TextButton") then
-			if string.find(v.Text, "unique") then
-				return v.Text
-			end
-		end
-	end
-
-	return nil
-end
-
--- ===============================
--- STEP 2 : วน Inventory ทั้งหมด
--- ===============================
-local foundId = nil
+print("========== INVENTORY DEBUG ==========")
 
 for _, item in ipairs(InventoryPath:GetChildren()) do
 	if item:IsA("Frame") or item:IsA("ImageButton") then
-		local uid = getUniqueIdFromItem(item)
-		if uid then
-			foundId = uid
-			print("[FOUND uniqueId] ->", uid)
-			break
+		print("ITEM:", item.Name)
+
+		-- Attributes
+		for attr, val in pairs(item:GetAttributes()) do
+			print("  [Attribute]", attr, "=", val)
 		end
+
+		-- Values
+		for _, v in ipairs(item:GetDescendants()) do
+			if v:IsA("StringValue") or v:IsA("IntValue") then
+				print("  [Value]", v.Name, "=", v.Value)
+			end
+
+			if v:IsA("TextLabel") or v:IsA("TextButton") then
+				print("  [Text]", v.Text)
+			end
+		end
+
+		print("-----------------------------------")
 	end
-end
-
--- ===============================
--- STEP 3 : เรียก Remote
--- ===============================
-if foundId then
-	local args = {
-		foundId,
-		false
-	}
-
-	local result = SetUnitEquipped:InvokeServer(unpack(args))
-	print("[SetUnitEquipped Result]:", result)
-else
-	warn("ไม่พบ uniqueId ใน Inventory")
 end
