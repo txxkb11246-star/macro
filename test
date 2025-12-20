@@ -1,70 +1,89 @@
 -- ===============================
--- Inventory Click Capture Script
--- STEP 3 + STEP 4 COMBINED
+-- Roblox Auto Find uniqueId + Equip Unit
+-- Client / Executor Script
 -- ===============================
 
-local DEBUG = true
-local function dprint(...)
-    if DEBUG then print("[DEBUG]", ...) end
+-- Services
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local player = Players.LocalPlayer
+
+-- Remote
+local SetUnitEquipped = ReplicatedStorage
+	:WaitForChild("RemoteFunctions")
+	:WaitForChild("SetUnitEquipped")
+
+-- Inventory GUI Path
+local InventoryPath =
+	player.PlayerGui
+	:WaitForChild("GameGui")
+	:WaitForChild("Screen")
+	:WaitForChild("Middle")
+	:WaitForChild("Inventory")
+	:WaitForChild("Inventory")
+	:WaitForChild("Frame")
+	:WaitForChild("Items")
+	:WaitForChild("Items")
+	:WaitForChild("ScrollingFrame")
+
+-- ===============================
+-- STEP 1 : หา uniqueId จาก Item
+-- ===============================
+local function getUniqueIdFromItem(item)
+	-- 1) เช็ค Attribute ก่อน
+	if item:GetAttribute("uniqueId") then
+		return item:GetAttribute("uniqueId")
+	end
+
+	-- 2) เช็ค StringValue
+	for _, v in ipairs(item:GetChildren()) do
+		if v:IsA("StringValue") then
+			if string.find(v.Value, "unique") then
+				return v.Value
+			end
+		end
+	end
+
+	-- 3) เช็ค TextLabel / TextButton
+	for _, v in ipairs(item:GetDescendants()) do
+		if v:IsA("TextLabel") or v:IsA("TextButton") then
+			if string.find(v.Text, "unique") then
+				return v.Text
+			end
+		end
+	end
+
+	return nil
 end
 
-local InventoryPath = "UserInterface.GUI.Inventory"
-local candidates = {} -- สำคัญที่สุด
+-- ===============================
+-- STEP 2 : วน Inventory ทั้งหมด
+-- ===============================
+local foundId = nil
 
--- ===== STEP 3: Find functions =====
-for _, obj in ipairs(getgc(true)) do
-    if type(obj) == "function" then
-        local info = debug.getinfo(obj)
-        if info and info.source then
-            local src = tostring(info.source)
-            if src:find(InventoryPath) then
-                table.insert(candidates, obj)
-                dprint("FOUND FN", info.name or "nil", src)
-            end
-        end
-    end
+for _, item in ipairs(InventoryPath:GetChildren()) do
+	if item:IsA("Frame") or item:IsA("ImageButton") then
+		local uid = getUniqueIdFromItem(item)
+		if uid then
+			foundId = uid
+			print("[FOUND uniqueId] ->", uid)
+			break
+		end
+	end
 end
 
-print("[INFO] candidate functions found:", #candidates)
+-- ===============================
+-- STEP 3 : เรียก Remote
+-- ===============================
+if foundId then
+	local args = {
+		foundId,
+		false
+	}
 
-if #candidates == 0 then
-    warn("No Inventory functions found. Open Inventory + click item first.")
-    return
+	local result = SetUnitEquipped:InvokeServer(unpack(args))
+	print("[SetUnitEquipped Result]:", result)
+else
+	warn("ไม่พบ uniqueId ใน Inventory")
 end
-
--- ===== STEP 4: Hook & capture =====
-local lastUniqueId
-
-for i = 1, #candidates do
-    local fn = candidates[i]
-
-    local old
-    old = hookfunction(fn, function(...)
-        local args = {...}
-
-        for _, v in ipairs(args) do
-            if type(v) == "string" then
-                dprint("ARG STRING:", v)
-                if v:lower():find("unique") then
-                    lastUniqueId = v
-                    print("[CAPTURED uniqueId]", v)
-                end
-            elseif type(v) == "table" then
-                dprint("ARG TABLE:", v)
-                for k, v2 in pairs(v) do
-                    if type(v2) == "string" then
-                        dprint("  └─", k, v2)
-                        if v2:lower():find("unique") then
-                            lastUniqueId = v2
-                            print("[CAPTURED uniqueId]", v2)
-                        end
-                    end
-                end
-            end
-        end
-
-        return old(...)
-    end)
-end
-
-print("[INFO] Hooked functions:", #candidates)
