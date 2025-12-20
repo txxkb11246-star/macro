@@ -1,65 +1,70 @@
+-- ===============================
+-- Inventory Click Capture Script
+-- STEP 3 + STEP 4 COMBINED
+-- ===============================
+
 local DEBUG = true
 local function dprint(...)
     if DEBUG then print("[DEBUG]", ...) end
 end
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
+local InventoryPath = "UserInterface.GUI.Inventory"
+local candidates = {} -- สำคัญที่สุด
 
-local InventoryFrame = player.PlayerGui
-    :WaitForChild("GameGui", true)
-    :WaitForChild("Screen", true)
-    :WaitForChild("Middle", true)
-    :WaitForChild("Inventory", true)
-    :WaitForChild("Inventory", true)
-    :WaitForChild("Frame", true)
-    :WaitForChild("Items", true)
-    :WaitForChild("Items", true)
-    :WaitForChild("ScrollingFrame", true)
-
-local TradeRemote = ReplicatedStorage
-    :WaitForChild("RemoteFunctions")
-    :WaitForChild("TradeAddToOffer")
-
-local function extractUniqueIdFromFunction(fn)
-    for _, v in pairs(debug.getupvalues(fn)) do
-        if type(v) == "string" and v:lower():find("unique") then
-            return v
-        end
-        if type(v) == "table" then
-            for _, v2 in pairs(v) do
-                if type(v2) == "string" and v2:lower():find("unique") then
-                    return v2
-                end
+-- ===== STEP 3: Find functions =====
+for _, obj in ipairs(getgc(true)) do
+    if type(obj) == "function" then
+        local info = debug.getinfo(obj)
+        if info and info.source then
+            local src = tostring(info.source)
+            if src:find(InventoryPath) then
+                table.insert(candidates, obj)
+                dprint("FOUND FN", info.name or "nil", src)
             end
         end
     end
 end
 
-local function getUniqueIdFromButton(button)
-    if not (button:IsA("ImageButton") or button:IsA("TextButton")) then
-        return nil
-    end
-    for _, conn in ipairs(getconnections(button.MouseButton1Click) or {}) do
-        if typeof(conn.Function) == "function" then
-            local uid = extractUniqueIdFromFunction(conn.Function)
-            if uid then return uid end
+print("[INFO] candidate functions found:", #candidates)
+
+if #candidates == 0 then
+    warn("No Inventory functions found. Open Inventory + click item first.")
+    return
+end
+
+-- ===== STEP 4: Hook & capture =====
+local lastUniqueId
+
+for i = 1, #candidates do
+    local fn = candidates[i]
+
+    local old
+    old = hookfunction(fn, function(...)
+        local args = {...}
+
+        for _, v in ipairs(args) do
+            if type(v) == "string" then
+                dprint("ARG STRING:", v)
+                if v:lower():find("unique") then
+                    lastUniqueId = v
+                    print("[CAPTURED uniqueId]", v)
+                end
+            elseif type(v) == "table" then
+                dprint("ARG TABLE:", v)
+                for k, v2 in pairs(v) do
+                    if type(v2) == "string" then
+                        dprint("  └─", k, v2)
+                        if v2:lower():find("unique") then
+                            lastUniqueId = v2
+                            print("[CAPTURED uniqueId]", v2)
+                        end
+                    end
+                end
+            end
         end
-    end
+
+        return old(...)
+    end)
 end
 
-local items = {}
-for _, item in ipairs(InventoryFrame:GetChildren()) do
-    local uid = getUniqueIdFromButton(item)
-    if uid then
-        print("[FOUND]", item.Name, uid)
-        table.insert(items, uid)
-    end
-end
-
-for _, uid in ipairs(items) do
-    print("[TRADE]", uid)
-    TradeRemote:InvokeServer(uid, false)
-    task.wait(0.25)
-end
+print("[INFO] Hooked functions:", #candidates)
