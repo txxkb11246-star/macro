@@ -1,32 +1,73 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
+-- ======================================
+-- AUTO TRADE ID COLLECTOR + AUTO REMOVE
+-- ======================================
 
-local InventoryPath =
-	player.PlayerGui.GameGui.Screen.Middle.Inventory.Inventory
-	.Frame.Items.Items.ScrollingFrame
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-print("========== INVENTORY DEBUG ==========")
+local TradeAddToOffer =
+	ReplicatedStorage.RemoteFunctions.TradeAddToOffer
 
-for _, item in ipairs(InventoryPath:GetChildren()) do
-	if item:IsA("Frame") or item:IsA("ImageButton") then
-		print("ITEM:", item.Name)
+local TradeRemoveFromOffer =
+	ReplicatedStorage.RemoteFunctions.TradeRemoveFromOffer
+	-- ⚠️ ถ้าชื่อไม่ตรง ดูจาก Remote Spy แล้วแก้ชื่อ
 
-		-- Attributes
-		for attr, val in pairs(item:GetAttributes()) do
-			print("  [Attribute]", attr, "=", val)
+-- Cache
+getgenv().CachedUnits = getgenv().CachedUnits or {}
+
+local function addCache(unitName, itemId)
+	getgenv().CachedUnits[unitName] = getgenv().CachedUnits[unitName] or {}
+
+	for _, v in ipairs(getgenv().CachedUnits[unitName]) do
+		if v == itemId then
+			return
 		end
-
-		-- Values
-		for _, v in ipairs(item:GetDescendants()) do
-			if v:IsA("StringValue") or v:IsA("IntValue") then
-				print("  [Value]", v.Name, "=", v.Value)
-			end
-
-			if v:IsA("TextLabel") or v:IsA("TextButton") then
-				print("  [Text]", v.Text)
-			end
-		end
-
-		print("-----------------------------------")
 	end
+
+	table.insert(getgenv().CachedUnits[unitName], itemId)
+	print("[CACHED]", unitName, "->", itemId)
 end
+
+-- ===============================
+-- REMOTE HOOK
+-- ===============================
+
+local mt = getrawmetatable(game)
+setreadonly(mt, false)
+
+local old = mt.__namecall
+
+mt.__namecall = newcclosure(function(self, ...)
+	local args = {...}
+	local method = getnamecallmethod()
+
+	-- ===== ADD ITEM =====
+	if method == "InvokeServer" and self == TradeAddToOffer then
+		-- รูปแบบ args ที่พบบ่อย
+		local itemId
+		local unitName
+
+		if type(args[1]) == "table" then
+			itemId = args[1].id or args[1].ItemId or args[1].uniqueId
+			unitName = args[1].name or args[1].UnitName
+		else
+			itemId = args[1]
+			unitName = args[2] -- บางเกมส่งชื่อมาเป็น arg2
+		end
+
+		if itemId and unitName then
+			addCache(unitName, itemId)
+
+			-- เอาออกอัตโนมัติ (ไม่ให้ติด offer)
+			task.delay(0.05, function()
+				pcall(function()
+					TradeRemoveFromOffer:InvokeServer(itemId)
+					print("[AUTO REMOVE]", itemId)
+				end)
+			end)
+		end
+	end
+
+	return old(self, ...)
+end)
+
+print("AUTO TRADE COLLECTOR READY")
