@@ -1,6 +1,5 @@
 -- =====================================
--- TRADE CACHE : GIVE (NAME+ID) / RECEIVE (NAME)
--- NO AUTO CLICK / NO AUTO ADD
+-- TRADE CACHE (SAFE HOOK VERSION)
 -- =====================================
 
 local Players = game:GetService("Players")
@@ -10,22 +9,14 @@ local player = Players.LocalPlayer
 local TradeAdd = RS.RemoteFunctions.TradeAddToOffer
 
 -- GUI PATHS
-local TradeGui =
-	player.PlayerGui.GameGui.Screen.Middle.Trade
+local TradeGui = player.PlayerGui.GameGui.Screen.Middle.Trade
+local GiveSF = TradeGui.Items.Container.Items.Left.Give.Items.ScrollingFrame
+local ReceiveSF = TradeGui.Items.Container.Items.Right.Receive.Items.ScrollingFrame
 
-local GiveSF =
-	TradeGui.Items.Container.Items.Left.Give.Items.ScrollingFrame
-
-local ReceiveSF =
-	TradeGui.Items.Container.Items.Right.Receive.Items.ScrollingFrame
-
--- ===============================
--- GLOBAL CACHE
--- ===============================
-
-getgenv().TradeCache = getgenv().TradeCache or {
-	Give = {},     -- [unitName] = { uniqueId1, uniqueId2 }
-	Receive = {}   -- { unitName1, unitName2 }
+-- CACHE
+getgenv().TradeCache = {
+	Give = {},
+	Receive = {}
 }
 
 -- ===============================
@@ -38,18 +29,16 @@ local function getUnitNameFromItem(item)
 			return d.Text
 		end
 	end
-	return nil
 end
 
-local function getLatestFromSF(sf)
-	local items = sf:GetChildren()
-	if #items == 0 then return nil end
+local function getLatestGiveName()
+	local items = GiveSF:GetChildren()
+	if #items == 0 then return end
 	return getUnitNameFromItem(items[#items])
 end
 
 local function addGive(name, id)
 	if not name or not id then return end
-
 	TradeCache.Give[name] = TradeCache.Give[name] or {}
 
 	for _, v in ipairs(TradeCache.Give[name]) do
@@ -57,13 +46,13 @@ local function addGive(name, id)
 	end
 
 	table.insert(TradeCache.Give[name], id)
-	print("[GIVE CACHED]", name, id)
+	print("[GIVE]", name, id)
 end
 
 local function addReceive(name)
 	if not name then return end
 	table.insert(TradeCache.Receive, name)
-	print("[RECEIVE CACHED]", name)
+	print("[RECEIVE]", name)
 end
 
 local function scanId(v, cb)
@@ -77,32 +66,27 @@ local function scanId(v, cb)
 end
 
 -- ===============================
--- GIVE : REMOTE LISTENER (ID)
+-- SAFE REMOTE HOOK
 -- ===============================
 
-local mt = getrawmetatable(game)
-setreadonly(mt, false)
-local old = mt.__namecall
-
-mt.__namecall = newcclosure(function(self, ...)
+hookmetamethod(game, "__namecall", function(self, ...)
 	local args = {...}
 	local method = getnamecallmethod()
 
 	if method == "InvokeServer" and self == TradeAdd then
-		task.wait() -- รอ GUI อัปเดต
-
-		local unitName = getLatestFromSF(GiveSF)
+		task.wait()
+		local unitName = getLatestGiveName()
 
 		scanId(args, function(id)
 			addGive(unitName or "UNKNOWN", id)
 		end)
 	end
 
-	return old(self, ...)
+	return self(...)
 end)
 
 -- ===============================
--- RECEIVE : GUI LISTENER (NAME)
+-- RECEIVE GUI LISTENER
 -- ===============================
 
 ReceiveSF.ChildAdded:Connect(function(child)
@@ -111,4 +95,4 @@ ReceiveSF.ChildAdded:Connect(function(child)
 	addReceive(name)
 end)
 
-print("TRADE CACHE READY (GIVE + RECEIVE, NO AUTO CLICK)")
+print("TRADE CACHE READY (SAFE MODE)")
