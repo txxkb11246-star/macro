@@ -1,0 +1,117 @@
+-- =====================================
+-- AUTO TRADE RUM (TIMING SAFE FINAL)
+-- =====================================
+
+local Players = game:GetService("Players")
+local lp = Players.LocalPlayer
+
+-- ================= PATH =================
+local function WFC(p,n) return p:WaitForChild(n,10) end
+
+local gui = WFC(lp,"PlayerGui")
+gui = WFC(gui,"GameGui")
+gui = WFC(gui,"Screen")
+gui = WFC(gui,"Middle")
+gui = WFC(gui,"Trade")
+gui = WFC(gui,"Items")
+gui = WFC(gui,"Container")
+gui = WFC(gui,"Items")
+
+local GiveSF =
+	WFC(WFC(WFC(gui,"Left"),"Give"),"Items"):WaitForChild("ScrollingFrame")
+
+local ReceiveSF =
+	WFC(WFC(WFC(gui,"Right"),"Receive"),"Items"):WaitForChild("ScrollingFrame")
+
+-- ================= STORAGE =================
+local TradeRum = { Give = {}, Receive = {} }
+local PendingUIDs = {}  -- { {uid=string, t=number}, ... }
+
+-- ================= UTILS =================
+local function scanUID(v, cb)
+	if type(v) == "string" and v:find("unique_") then
+		cb(v)
+	elseif type(v) == "table" then
+		for _, x in pairs(v) do
+			scanUID(x, cb)
+		end
+	end
+end
+
+local function getUnitName(item)
+	for _, d in ipairs(item:GetDescendants()) do
+		if d:IsA("TextLabel") and d.Text ~= "" then
+			return d.Text
+		end
+	end
+end
+
+local function addGive(name, uid)
+	TradeRum.Give[name] = TradeRum.Give[name] or {}
+	table.insert(TradeRum.Give[name], uid)
+	print("[GIVE]", name, uid)
+end
+
+-- ================= REMOTE HOOK =================
+local mt = getrawmetatable(game)
+setreadonly(mt,false)
+local old = mt.__namecall
+
+mt.__namecall = newcclosure(function(self,...)
+	local args = {...}
+	local method = getnamecallmethod()
+
+	if tostring(self)=="TradeAddToOffer"
+	   and (method=="InvokeServer" or method=="FireServer") then
+
+		local now = tick()
+		task.defer(function()
+			for _,v in ipairs(args) do
+				scanUID(v,function(uid)
+					table.insert(PendingUIDs,{uid=uid,t=now})
+					print("[UID]",uid)
+				end)
+			end
+		end)
+	end
+
+	return old(self,...)
+end)
+
+-- ================= GIVE LISTENER =================
+GiveSF.ChildAdded:Connect(function(child)
+	task.defer(function()
+		local name = getUnitName(child)
+		if not name then return end
+
+		local now = tick()
+		local best, idx
+
+		for i,v in ipairs(PendingUIDs) do
+			if not best or math.abs(v.t-now) < math.abs(best.t-now) then
+				best = v
+				idx = i
+			end
+		end
+
+		if best then
+			table.remove(PendingUIDs, idx)
+			addGive(name, best.uid)
+		else
+			print("[GIVE]",name,"(no uid matched)")
+		end
+	end)
+end)
+
+-- ================= RECEIVE =================
+ReceiveSF.ChildAdded:Connect(function(child)
+	task.defer(function()
+		local name = getUnitName(child)
+		if name then
+			TradeRum.Receive[name] = true
+			print("[RECEIVE]",name)
+		end
+	end)
+end)
+
+print("AUTO TRADE RUM READY (TIMING SAFE)")
