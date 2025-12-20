@@ -1,66 +1,30 @@
 -- =====================================
--- TRADE FULL RUM (SAFE)
--- GIVE : UID (Remote) + NAME (GUI)
--- RECEIVE : NAME (GUI)
--- NO WAIT IN __namecall
+-- AUTO TRADE RUM (CLIENT FINAL)
+-- GIVE: name + UID
+-- RECEIVE: name only
 -- =====================================
 
--- ===== SERVICES =====
 local Players = game:GetService("Players")
-local RS = game:GetService("ReplicatedStorage")
-local player = Players.LocalPlayer
+local lp = Players.LocalPlayer
 
--- ===== REMOTE =====
-local TradeAdd = RS.RemoteFunctions.TradeAddToOffer
-
--- ===== GUI PATHS =====
-local TradeGui = player.PlayerGui.GameGui.Screen.Middle.Trade
+-- ================= PATH =================
+local TradeGui = lp.PlayerGui.GameGui.Screen.Middle.Trade.Items.Container.Items
 
 local GiveSF =
-	TradeGui.Items.Container.Items.Left.Give.Items.ScrollingFrame
+	TradeGui.Left.Give.Items.ScrollingFrame
 
 local ReceiveSF =
-	TradeGui.Items.Container.Items.Right.Receive.Items.ScrollingFrame
+	TradeGui.Right.Receive.Items.ScrollingFrame
 
--- ===== CACHE =====
-getgenv().TradeRum = getgenv().TradeRum or {
-	Give = {},      -- [unitName] = { uid1, uid2 }
-	Receive = {}    -- { unitName1, unitName2 }
+-- ================= STORAGE =================
+local TradeRum = {
+	Give = {},     -- [name] = {uid, uid, ...}
+	Receive = {}   -- [name] = true
 }
 
--- ===== UTIL =====
-local function getUnitNameFromItem(item)
-	for _, d in ipairs(item:GetDescendants()) do
-		if d:IsA("TextLabel") and d.Text ~= "" then
-			return d.Text
-		end
-	end
-end
+local PendingGiveUIDs = {}
 
-local function getLatestGiveName()
-	local items = GiveSF:GetChildren()
-	if #items == 0 then return nil end
-	return getUnitNameFromItem(items[#items])
-end
-
-local function addGive(name, uid)
-	if not name or not uid then return end
-	TradeRum.Give[name] = TradeRum.Give[name] or {}
-
-	for _, v in ipairs(TradeRum.Give[name]) do
-		if v == uid then return end
-	end
-
-	table.insert(TradeRum.Give[name], uid)
-	print("[GIVE]", name, uid)
-end
-
-local function addReceive(name)
-	if not name then return end
-	table.insert(TradeRum.Receive, name)
-	print("[RECEIVE]", name)
-end
-
+-- ================= UTILS =================
 local function scanUID(v, cb)
 	if type(v) == "string" and string.find(v, "unique_") then
 		cb(v)
@@ -71,26 +35,46 @@ local function scanUID(v, cb)
 	end
 end
 
--- =====================================
--- GIVE : REMOTE HOOK (NO YIELD)
--- =====================================
+local function getUnitNameFromItem(item)
+	for _, d in ipairs(item:GetDescendants()) do
+		if d:IsA("TextLabel") and d.Text ~= "" then
+			return d.Text
+		end
+	end
+end
 
+local function addGive(name, uid)
+	TradeRum.Give[name] = TradeRum.Give[name] or {}
+	table.insert(TradeRum.Give[name], uid)
+	print("[GIVE]", name, uid)
+end
+
+local function addReceive(name)
+	if not TradeRum.Receive[name] then
+		TradeRum.Receive[name] = true
+		print("[RECEIVE]", name)
+	end
+end
+
+-- ================= REMOTE HOOK =================
 local mt = getrawmetatable(game)
 setreadonly(mt, false)
+
 local old = mt.__namecall
 
 mt.__namecall = newcclosure(function(self, ...)
 	local args = {...}
 	local method = getnamecallmethod()
 
-	if method == "InvokeServer" and tostring(self) == "TradeAddToOffer" then
-		-- ❗ ห้าม wait ตรงนี้
-		task.defer(function()
-			local unitName = getLatestGiveName()
+	if method == "InvokeServer"
+		and tostring(self) == "TradeAddToOffer" then
 
+		-- ❗ ห้าม yield
+		task.defer(function()
 			for _, v in ipairs(args) do
 				scanUID(v, function(uid)
-					addGive(unitName or "UNKNOWN", uid)
+					table.insert(PendingGiveUIDs, uid)
+					print("[UID QUEUED]", uid)
 				end)
 			end
 		end)
@@ -99,15 +83,31 @@ mt.__namecall = newcclosure(function(self, ...)
 	return old(self, ...)
 end)
 
--- =====================================
--- RECEIVE : GUI LISTENER (NAME ONLY)
--- =====================================
-
-ReceiveSF.ChildAdded:Connect(function(child)
+-- ================= GIVE LISTENER =================
+GiveSF.ChildAdded:Connect(function(child)
 	task.defer(function()
 		local name = getUnitNameFromItem(child)
-		addReceive(name)
+		if not name then return end
+
+		local uid = table.remove(PendingGiveUIDs, 1)
+		if not uid then
+			print("[GIVE] name found but no uid:", name)
+			return
+		end
+
+		addGive(name, uid)
 	end)
 end)
 
-print("TRADE FULL RUM READY (SAFE VERSION)")
+-- ================= RECEIVE LISTENER =================
+ReceiveSF.ChildAdded:Connect(function(child)
+	task.defer(function()
+		local name = getUnitNameFromItem(child)
+		if name then
+			addReceive(name)
+		end
+	end)
+end)
+
+-- ================= READY =================
+print("AUTO TRADE RUM READY")
