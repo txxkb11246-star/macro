@@ -1,13 +1,14 @@
--- =====================================
--- AUTO TRADE RUM (TIMING SAFE FINAL)
--- =====================================
+-- =================================================
+-- UNIT UID FULL SCAN & STORE (SCAN ONLY)
+-- =================================================
 
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
--- ================= PATH =================
+-- ================= SAFE WFC =================
 local function WFC(p,n) return p:WaitForChild(n,10) end
 
+-- ================= GUI PATH =================
 local gui = WFC(lp,"PlayerGui")
 gui = WFC(gui,"GameGui")
 gui = WFC(gui,"Screen")
@@ -20,39 +21,32 @@ gui = WFC(gui,"Items")
 local GiveSF =
 	WFC(WFC(WFC(gui,"Left"),"Give"),"Items"):WaitForChild("ScrollingFrame")
 
-local ReceiveSF =
-	WFC(WFC(WFC(gui,"Right"),"Receive"),"Items"):WaitForChild("ScrollingFrame")
-
 -- ================= STORAGE =================
-local TradeRum = { Give = {}, Receive = {} }
-local PendingUIDs = {}  -- { {uid=string, t=number}, ... }
+-- UnitStore[name] = { "unique_xxx", ... }
+local UnitStore = {}
+local PendingQueue = {} -- FIFO UID queue
 
 -- ================= UTILS =================
-local function scanUID(v, cb)
-	if type(v) == "string" and v:find("unique_") then
-		cb(v)
-	elseif type(v) == "table" then
-		for _, x in pairs(v) do
-			scanUID(x, cb)
-		end
-	end
-end
-
 local function getUnitName(item)
-	for _, d in ipairs(item:GetDescendants()) do
+	for _,d in ipairs(item:GetDescendants()) do
 		if d:IsA("TextLabel") and d.Text ~= "" then
 			return d.Text
 		end
 	end
 end
 
-local function addGive(name, uid)
-	TradeRum.Give[name] = TradeRum.Give[name] or {}
-	table.insert(TradeRum.Give[name], uid)
-	print("[GIVE]", name, uid)
+local function addUnit(name, uid)
+	UnitStore[name] = UnitStore[name] or {}
+	table.insert(UnitStore[name], uid)
+	print("[SCAN]", name, uid)
 end
 
--- ================= REMOTE HOOK =================
+local function popPending()
+	if #PendingQueue == 0 then return nil end
+	return table.remove(PendingQueue, 1)
+end
+
+-- ================= REMOTE SCAN =================
 local mt = getrawmetatable(game)
 setreadonly(mt,false)
 local old = mt.__namecall
@@ -61,57 +55,56 @@ mt.__namecall = newcclosure(function(self,...)
 	local args = {...}
 	local method = getnamecallmethod()
 
-	if tostring(self)=="TradeAddToOffer"
-	   and (method=="InvokeServer" or method=="FireServer") then
-
-		local now = tick()
-		task.defer(function()
-			for _,v in ipairs(args) do
-				scanUID(v,function(uid)
-					table.insert(PendingUIDs,{uid=uid,t=now})
-					print("[UID]",uid)
-				end)
+	-- สแกนทุก remote ที่ส่ง unique_ ออกมา
+	if method == "InvokeServer" or method == "FireServer" then
+		for _,v in ipairs(args) do
+			if type(v) == "string" and v:find("unique_") then
+				table.insert(PendingQueue, v)
+			elseif type(v) == "table" then
+				for _,x in pairs(v) do
+					if type(x)=="string" and x:find("unique_") then
+						table.insert(PendingQueue, x)
+					end
+				end
 			end
-		end)
+		end
 	end
 
 	return old(self,...)
 end)
 
--- ================= GIVE LISTENER =================
+-- ================= GUI MATCH =================
 GiveSF.ChildAdded:Connect(function(child)
 	task.defer(function()
 		local name = getUnitName(child)
 		if not name then return end
 
-		local now = tick()
-		local best, idx
-
-		for i,v in ipairs(PendingUIDs) do
-			if not best or math.abs(v.t-now) < math.abs(best.t-now) then
-				best = v
-				idx = i
-			end
-		end
-
-		if best then
-			table.remove(PendingUIDs, idx)
-			addGive(name, best.uid)
+		local uid = popPending()
+		if uid then
+			addUnit(name, uid)
 		else
-			print("[GIVE]",name,"(no uid matched)")
+			print("[WARN] UID NOT FOUND FOR", name)
 		end
 	end)
 end)
 
--- ================= RECEIVE =================
-ReceiveSF.ChildAdded:Connect(function(child)
-	task.defer(function()
-		local name = getUnitName(child)
-		if name then
-			TradeRum.Receive[name] = true
-			print("[RECEIVE]",name)
-		end
-	end)
-end)
+-- ================= PUBLIC ACCESS =================
+_G.UnitScan = {}
 
-print("AUTO TRADE RUM READY (TIMING SAFE)")
+-- ดึง UID ทั้งหมดของชื่อที่ต้องการ
+function _G.UnitScan.Get(name)
+	return UnitStore[name]
+end
+
+-- ดูทั้งหมด
+function _G.UnitScan.Dump()
+	for name,list in pairs(UnitStore) do
+		print("====", name, "====")
+		for i,uid in ipairs(list) do
+			print(i, uid)
+		end
+	end
+end
+
+print("UNIT UID FULL SCAN READY (SCAN ONLY)")
+print("USE: _G.UnitScan.Get(name) / _G.UnitScan.Dump()")
