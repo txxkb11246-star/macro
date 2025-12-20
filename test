@@ -1,16 +1,19 @@
 -- =====================================
--- TRADE RUM : GIVE (NAME + UID) / RECEIVE (NAME)
--- getrawmetatable VERSION (ตาม environment คุณ)
+-- TRADE FULL RUM (SAFE)
+-- GIVE : UID (Remote) + NAME (GUI)
+-- RECEIVE : NAME (GUI)
+-- NO WAIT IN __namecall
 -- =====================================
 
+-- ===== SERVICES =====
 local Players = game:GetService("Players")
-local player = Players.LocalPlayer
 local RS = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
 
--- Remote
+-- ===== REMOTE =====
 local TradeAdd = RS.RemoteFunctions.TradeAddToOffer
 
--- GUI PATHS
+-- ===== GUI PATHS =====
 local TradeGui = player.PlayerGui.GameGui.Screen.Middle.Trade
 
 local GiveSF =
@@ -19,19 +22,13 @@ local GiveSF =
 local ReceiveSF =
 	TradeGui.Items.Container.Items.Right.Receive.Items.ScrollingFrame
 
--- ===============================
--- CACHE
--- ===============================
-
+-- ===== CACHE =====
 getgenv().TradeRum = getgenv().TradeRum or {
 	Give = {},      -- [unitName] = { uid1, uid2 }
 	Receive = {}    -- { unitName1, unitName2 }
 }
 
--- ===============================
--- UTIL
--- ===============================
-
+-- ===== UTIL =====
 local function getUnitNameFromItem(item)
 	for _, d in ipairs(item:GetDescendants()) do
 		if d:IsA("TextLabel") and d.Text ~= "" then
@@ -48,13 +45,10 @@ end
 
 local function addGive(name, uid)
 	if not name or not uid then return end
-
 	TradeRum.Give[name] = TradeRum.Give[name] or {}
 
 	for _, v in ipairs(TradeRum.Give[name]) do
-		if v == uid then
-			return
-		end
+		if v == uid then return end
 	end
 
 	table.insert(TradeRum.Give[name], uid)
@@ -77,13 +71,12 @@ local function scanUID(v, cb)
 	end
 end
 
--- ===============================
--- GIVE : REMOTE HOOK (UID)
--- ===============================
+-- =====================================
+-- GIVE : REMOTE HOOK (NO YIELD)
+-- =====================================
 
 local mt = getrawmetatable(game)
 setreadonly(mt, false)
-
 local old = mt.__namecall
 
 mt.__namecall = newcclosure(function(self, ...)
@@ -91,26 +84,30 @@ mt.__namecall = newcclosure(function(self, ...)
 	local method = getnamecallmethod()
 
 	if method == "InvokeServer" and tostring(self) == "TradeAddToOffer" then
-		task.wait() -- รอ GUI Give อัปเดต
+		-- ❗ ห้าม wait ตรงนี้
+		task.defer(function()
+			local unitName = getLatestGiveName()
 
-		local unitName = getLatestGiveName()
-
-		scanUID(args, function(uid)
-			addGive(unitName or "UNKNOWN", uid)
+			for _, v in ipairs(args) do
+				scanUID(v, function(uid)
+					addGive(unitName or "UNKNOWN", uid)
+				end)
+			end
 		end)
 	end
 
 	return old(self, ...)
 end)
 
--- ===============================
+-- =====================================
 -- RECEIVE : GUI LISTENER (NAME ONLY)
--- ===============================
+-- =====================================
 
 ReceiveSF.ChildAdded:Connect(function(child)
-	task.wait()
-	local name = getUnitNameFromItem(child)
-	addReceive(name)
+	task.defer(function()
+		local name = getUnitNameFromItem(child)
+		addReceive(name)
+	end)
 end)
 
-print("TRADE RUM READY (GIVE UID+NAME / RECEIVE NAME)")
+print("TRADE FULL RUM READY (SAFE VERSION)")
