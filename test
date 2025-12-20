@@ -95,3 +95,20 @@ mt.__namecall = newcclosure(function(self, ...)
 
 		scanId(args, function(id)
 			addGive(unitName or "UNKNOWN", id)
+		end)
+	end
+
+	return old(self, ...)
+end)
+
+-- ===============================
+-- RECEIVE : GUI LISTENER (NAME)
+-- ===============================
+
+ReceiveSF.ChildAdded:Connect(function(child)
+	task.wait()
+	local name = getUnitNameFromItem(child)
+	addReceive(name)
+end)
+
+print("TRADE CACHE READY (GIVE + RECEIVE, NO AUTO CLICK)")
