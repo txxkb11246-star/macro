@@ -1,110 +1,60 @@
--- =================================================
--- UNIT UID FULL SCAN & STORE (SCAN ONLY)
--- =================================================
+-- === FORCE REAL CLICK (MAXIMUM COMPATIBILITY) ===
 
 local Players = game:GetService("Players")
-local lp = Players.LocalPlayer
+local GuiService = game:GetService("GuiService")
+local VIM = game:GetService("VirtualInputManager")
 
--- ================= SAFE WFC =================
-local function WFC(p,n) return p:WaitForChild(n,10) end
+local player = Players.LocalPlayer
+local gui = player.PlayerGui
 
--- ================= GUI PATH =================
-local gui = WFC(lp,"PlayerGui")
-gui = WFC(gui,"GameGui")
-gui = WFC(gui,"Screen")
-gui = WFC(gui,"Middle")
-gui = WFC(gui,"Trade")
-gui = WFC(gui,"Items")
-gui = WFC(gui,"Container")
-gui = WFC(gui,"Items")
+-- PATH
+local scrolling = gui
+	:WaitForChild("GameGui")
+	.Screen.Middle.Trade.Inventory.Inventory
+	.Frame.Items.Items.ScrollingFrame
 
-local GiveSF =
-	WFC(WFC(WFC(gui,"Left"),"Give"),"Items"):WaitForChild("ScrollingFrame")
+local unit = scrolling:WaitForChild("unit_rafflesia")
+local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
 
--- ================= STORAGE =================
--- UnitStore[name] = { "unique_xxx", ... }
-local UnitStore = {}
-local PendingQueue = {} -- FIFO UID queue
-
--- ================= UTILS =================
-local function getUnitName(item)
-	for _,d in ipairs(item:GetDescendants()) do
-		if d:IsA("TextLabel") and d.Text ~= "" then
-			return d.Text
-		end
-	end
-end
-
-local function addUnit(name, uid)
-	UnitStore[name] = UnitStore[name] or {}
-	table.insert(UnitStore[name], uid)
-	print("[SCAN]", name, uid)
-end
-
-local function popPending()
-	if #PendingQueue == 0 then return nil end
-	return table.remove(PendingQueue, 1)
-end
-
--- ================= REMOTE SCAN =================
-local mt = getrawmetatable(game)
-setreadonly(mt,false)
-local old = mt.__namecall
-
-mt.__namecall = newcclosure(function(self,...)
-	local args = {...}
-	local method = getnamecallmethod()
-
-	-- สแกนทุก remote ที่ส่ง unique_ ออกมา
-	if method == "InvokeServer" or method == "FireServer" then
-		for _,v in ipairs(args) do
-			if type(v) == "string" and v:find("unique_") then
-				table.insert(PendingQueue, v)
-			elseif type(v) == "table" then
-				for _,x in pairs(v) do
-					if type(x)=="string" and x:find("unique_") then
-						table.insert(PendingQueue, x)
-					end
-				end
-			end
-		end
-	end
-
-	return old(self,...)
+-- 1) บังคับเลื่อนให้ item อยู่ในจอ
+pcall(function()
+	scrolling.CanvasPosition = Vector2.new(
+		0,
+		math.max(0, unit.AbsolutePosition.Y - scrolling.AbsolutePosition.Y - 50)
+	)
 end)
 
--- ================= GUI MATCH =================
-GiveSF.ChildAdded:Connect(function(child)
-	task.defer(function()
-		local name = getUnitName(child)
-		if not name then return end
-
-		local uid = popPending()
-		if uid then
-			addUnit(name, uid)
-		else
-			print("[WARN] UID NOT FOUND FOR", name)
-		end
-	end)
-end)
-
--- ================= PUBLIC ACCESS =================
-_G.UnitScan = {}
-
--- ดึง UID ทั้งหมดของชื่อที่ต้องการ
-function _G.UnitScan.Get(name)
-	return UnitStore[name]
+-- 2) บังคับสถานะ GUI
+unit.Visible = true
+unit.Active = true
+if button then
+	button.Visible = true
+	button.Active = true
+	button.ZIndex = 1000
 end
 
--- ดูทั้งหมด
-function _G.UnitScan.Dump()
-	for name,list in pairs(UnitStore) do
-		print("====", name, "====")
-		for i,uid in ipairs(list) do
-			print(i, uid)
-		end
-	end
-end
+-- รอ render เต็ม
+task.wait(0.1)
+task.wait(0.1)
 
-print("UNIT UID FULL SCAN READY (SCAN ONLY)")
-print("USE: _G.UnitScan.Get(name) / _G.UnitScan.Dump()")
+-- 3) โฟกัสเหมือนเอาเมาส์ชี้
+GuiService.SelectedObject = button or unit
+task.wait(0.05)
+
+-- 4) คำนวณตำแหน่งกลาง
+local target = button or unit
+local pos = target.AbsolutePosition + (target.AbsoluteSize / 2)
+
+-- 5) ขยับเมาส์ + คลิกจริง
+VIM:SendMouseMoveEvent(pos.X, pos.Y, game)
+task.wait(0.03)
+
+VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 1)
+task.wait(0.06)
+VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 1)
+
+-- 6) เผื่อเกมฟังคีย์ยืนยัน (บางเกมใช้)
+task.wait(0.05)
+VIM:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+task.wait(0.05)
+VIM:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
