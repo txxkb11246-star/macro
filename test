@@ -1,40 +1,31 @@
 -- =====================================
--- AUTO TRADE RUM (FIXED FINAL)
--- GIVE: name + UID
--- RECEIVE: name only
+-- AUTO TRADE RUM (TIMING SAFE FINAL)
 -- =====================================
 
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
--- ================= SAFE WAIT =================
-local function WFC(p, n)
-	return p:WaitForChild(n, 10)
-end
-
 -- ================= PATH =================
-local gui = WFC(lp, "PlayerGui")
-gui = WFC(gui, "GameGui")
-gui = WFC(gui, "Screen")
-gui = WFC(gui, "Middle")
-gui = WFC(gui, "Trade")
-gui = WFC(gui, "Items")
-gui = WFC(gui, "Container")
-gui = WFC(gui, "Items")
+local function WFC(p,n) return p:WaitForChild(n,10) end
+
+local gui = WFC(lp,"PlayerGui")
+gui = WFC(gui,"GameGui")
+gui = WFC(gui,"Screen")
+gui = WFC(gui,"Middle")
+gui = WFC(gui,"Trade")
+gui = WFC(gui,"Items")
+gui = WFC(gui,"Container")
+gui = WFC(gui,"Items")
 
 local GiveSF =
-	WFC(WFC(WFC(gui, "Left"), "Give"), "Items"):WaitForChild("ScrollingFrame")
+	WFC(WFC(WFC(gui,"Left"),"Give"),"Items"):WaitForChild("ScrollingFrame")
 
 local ReceiveSF =
-	WFC(WFC(WFC(gui, "Right"), "Receive"), "Items"):WaitForChild("ScrollingFrame")
+	WFC(WFC(WFC(gui,"Right"),"Receive"),"Items"):WaitForChild("ScrollingFrame")
 
 -- ================= STORAGE =================
-local TradeRum = {
-	Give = {},
-	Receive = {}
-}
-
-local PendingGiveUIDs = {}
+local TradeRum = { Give = {}, Receive = {} }
+local PendingUIDs = {}  -- { {uid=string, t=number}, ... }
 
 -- ================= UTILS =================
 local function scanUID(v, cb)
@@ -47,7 +38,7 @@ local function scanUID(v, cb)
 	end
 end
 
-local function getUnitNameFromItem(item)
+local function getUnitName(item)
 	for _, d in ipairs(item:GetDescendants()) do
 		if d:IsA("TextLabel") and d.Text ~= "" then
 			return d.Text
@@ -61,68 +52,66 @@ local function addGive(name, uid)
 	print("[GIVE]", name, uid)
 end
 
-local function addReceive(name)
-	if not TradeRum.Receive[name] then
-		TradeRum.Receive[name] = true
-		print("[RECEIVE]", name)
-	end
-end
-
 -- ================= REMOTE HOOK =================
 local mt = getrawmetatable(game)
-setreadonly(mt, false)
-
+setreadonly(mt,false)
 local old = mt.__namecall
 
-mt.__namecall = newcclosure(function(self, ...)
+mt.__namecall = newcclosure(function(self,...)
 	local args = {...}
 	local method = getnamecallmethod()
-	local rname = tostring(self)
 
-	if rname == "TradeAddToOffer"
-		and (method == "InvokeServer" or method == "FireServer") then
+	if tostring(self)=="TradeAddToOffer"
+	   and (method=="InvokeServer" or method=="FireServer") then
 
+		local now = tick()
 		task.defer(function()
-			for _, v in ipairs(args) do
-				scanUID(v, function(uid)
-					table.insert(PendingGiveUIDs, uid)
-					print("[UID QUEUED]", uid)
+			for _,v in ipairs(args) do
+				scanUID(v,function(uid)
+					table.insert(PendingUIDs,{uid=uid,t=now})
+					print("[UID]",uid)
 				end)
 			end
 		end)
 	end
 
-	return old(self, ...)
+	return old(self,...)
 end)
 
 -- ================= GIVE LISTENER =================
 GiveSF.ChildAdded:Connect(function(child)
 	task.defer(function()
-		local name = getUnitNameFromItem(child)
-		if not name then
-			print("[GIVE] no name")
-			return
+		local name = getUnitName(child)
+		if not name then return end
+
+		local now = tick()
+		local best, idx
+
+		for i,v in ipairs(PendingUIDs) do
+			if not best or math.abs(v.t-now) < math.abs(best.t-now) then
+				best = v
+				idx = i
+			end
 		end
 
-		local uid = table.remove(PendingGiveUIDs, 1)
-		if not uid then
-			print("[GIVE]", name, "(uid not yet)")
-			return
+		if best then
+			table.remove(PendingUIDs, idx)
+			addGive(name, best.uid)
+		else
+			print("[GIVE]",name,"(no uid matched)")
 		end
-
-		addGive(name, uid)
 	end)
 end)
 
--- ================= RECEIVE LISTENER =================
+-- ================= RECEIVE =================
 ReceiveSF.ChildAdded:Connect(function(child)
 	task.defer(function()
-		local name = getUnitNameFromItem(child)
+		local name = getUnitName(child)
 		if name then
-			addReceive(name)
+			TradeRum.Receive[name] = true
+			print("[RECEIVE]",name)
 		end
 	end)
 end)
 
--- ================= READY =================
-print("AUTO TRADE RUM READY (FIXED)")
+print("AUTO TRADE RUM READY (TIMING SAFE)")
