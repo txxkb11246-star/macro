@@ -45,12 +45,15 @@ end
 
 waitForUserAndClick(targetUsername)
 
--- === Step 3: Wait for Trade GUI and click Accept ===
+-- === Step 3: Wait for Trade GUI and then 8s delay before Accept ===
 local trade
 repeat
     trade = middle:FindFirstChild("Trade")
     wait(0.1)
 until trade
+
+print("Trade GUI found, waiting 8 seconds before clicking Accept...")
+task.wait(8)
 
 local acceptButton = trade.Terms.Items.Buttons.Items.Accept
 local acceptConnections = getconnections(acceptButton.MouseButton1Click)
