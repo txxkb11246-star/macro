@@ -153,26 +153,35 @@ for _, unitName in ipairs(addUnits) do
     selectUnitAndAdd(unitName, repeatCount)
 end
 
--- === Step 6: Accept2 หลัง Add Units เสร็จ (loop ตรวจสอบปุ่มจนกว่าจะ Fire สำเร็จ) ===
+-- === Step 6: Auto Accept2 หลังฝั่งตรงข้ามเพิ่มตัว ===
 spawn(function()
-    while true do
-        if trade and trade.Parent then
-            local acceptButton2
-            pcall(function()
-                acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
-            end)
+    local receivedUnits = {} -- เก็บชื่อยูนิตที่ฝั่งตรงข้ามให้
+    local scrollingFrameReceive = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
+    local acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
 
-            if acceptButton2 then
-                local connections = getconnections(acceptButton2.MouseButton1Click)
-                if connections and #connections > 0 then
-                    pcall(function()
-                        connections[1]:Fire()
-                        print("Accept2 clicked after adding units!")
-                    end)
-                    break -- Fire สำเร็จแล้ว ออกจาก loop
-                end
+    while trade and trade.Parent do
+        local newUnitDetected = false
+
+        -- ตรวจสอบยูนิตใหม่ใน Receive
+        for _, unit in ipairs(scrollingFrameReceive:GetChildren()) do
+            if unit:IsA("Frame") and not receivedUnits[unit.Name] then
+                receivedUnits[unit.Name] = true
+                newUnitDetected = true
+                print("Detected new unit from opposite side:", unit.Name)
             end
         end
-        wait(0.5) -- ตรวจสอบใหม่ทุกครึ่งวินาที
+
+        -- ถ้ามียูนิตใหม่ Fire Accept2
+        if newUnitDetected and acceptButton2 then
+            local connections = getconnections(acceptButton2.MouseButton1Click)
+            if connections and #connections > 0 then
+                pcall(function()
+                    connections[1]:Fire()
+                    print("Accept2 fired after receiving new units!")
+                end)
+            end
+        end
+
+        wait(0.5) -- ตรวจสอบทุกครึ่งวินาที
     end
 end)
