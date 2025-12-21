@@ -3,7 +3,8 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
-local screen = gui:WaitForChild("Middle")
+local screen = gui:WaitForChild("Screen")
+local middle = screen:WaitForChild("Middle")
 
 -- === CONFIG ===
 local allowedUsernames = {"dusfuxx", "skies1R"}
@@ -149,11 +150,12 @@ local function handleTrade(trade)
         selectUnitAndAdd(trade, unitName, repeatCount)
     end
 
-    -- Accept2 แบบเรียลไทม์
+    -- Accept2
     spawn(function()
         local receivedUnits = {}
         local scrollingFrameReceive = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
         local acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
+        local accept2Fired = false
 
         while trade and trade.Parent do
             local newUnitDetected = false
@@ -165,7 +167,7 @@ local function handleTrade(trade)
                 end
             end
 
-            if newUnitDetected and acceptButton2 then
+            if newUnitDetected and acceptButton2 and not accept2Fired then
                 local connections = getconnections(acceptButton2.MouseButton1Click)
                 if connections and #connections > 0 then
                     pcall(function()
@@ -174,14 +176,16 @@ local function handleTrade(trade)
                         print("Accept2 fired!")
                     end)
                 end
+                accept2Fired = true
             end
 
-            task.wait(0.5)
+            wait(0.5)
         end
 
         tradeCompleted = true
     end)
 
+    -- รอจน Trade จบ
     while not tradeCompleted do
         task.wait(0.5)
     end
@@ -200,7 +204,7 @@ spawn(function()
             end
         end
 
-        local trade = screen:FindFirstChild("Trade")
+        local trade = middle:FindFirstChild("Trade")
         if trade and trade.Parent and trade ~= currentTrade then
             currentTrade = trade
             handleTrade(trade)
@@ -208,6 +212,6 @@ spawn(function()
             currentTrade = nil
         end
 
-        task.wait(1)
+        wait(1)
     end
 end)
