@@ -1,1 +1,44 @@
+-- รายชื่อที่อนุญาต
+local allowedUsernames = {
+    "dusfuxx",
+    "skies1R"
+}
 
+-- ฟังก์ชันเช็คว่าอนุญาตหรือไม่
+local function isAllowed(username)
+    for _, name in ipairs(allowedUsernames) do
+        if name == username then
+            return true
+        end
+    end
+    return false
+end
+
+-- ฟังก์ชัน accept invite
+local function acceptInvite(username)
+    local player = game:GetService("Players"):FindFirstChild(username)
+    if player then
+        local success, err = pcall(function()
+            game:GetService("ReplicatedStorage")
+                :WaitForChild("RemoteFunctions")
+                :WaitForChild("TradeAcceptInvite")
+                :InvokeServer(player)
+        end)
+        if success then
+            print("Accepted invite from " .. username)
+        else
+            warn("Failed to accept invite from " .. username, err)
+        end
+    end
+end
+
+-- วนเช็ค invite ทุกคน
+while true do
+    for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
+        local username = player.Name
+        if isAllowed(username) then
+            acceptInvite(username)
+        end
+    end
+    wait(1) -- รอ 1 วินาที ก่อนวนรอบใหม่ ป้องกันสคริปต์โหลดหนัก
+end
