@@ -128,6 +128,7 @@ local function handleTrade(trade)
 end
 
 spawn(function()
+    local currentTrade = nil
     while true do
         for _, p in ipairs(Players:GetPlayers()) do
             if isAllowed(p.Name) then
@@ -135,8 +136,11 @@ spawn(function()
             end
         end
         local trade = middle:FindFirstChild("Trade")
-        if trade and trade.Parent then
+        if trade and trade.Parent and trade ~= currentTrade then
+            currentTrade = trade
             handleTrade(trade)
+        elseif not trade then
+            currentTrade = nil
         end
         wait(1)
     end
