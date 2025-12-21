@@ -1,0 +1,34 @@
+-- Services
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- GUI Path
+local scrollingFrame = player.PlayerGui.GameGui.Screen.Middle.TradePartner.Items.Items.Items.Items.ScrollingFrame
+
+-- ชื่อ username ที่เราต้องการหา
+local targetUsername = "skies1R" -- เปลี่ยนเป็นชื่อที่คุณเลือก
+
+-- ฟังก์ชันสแกนหาและ Fire ปุ่ม
+local function selectUserAndFire()
+    local targetItem = scrollingFrame:FindFirstChild(targetUsername)
+    if targetItem then
+        local button = targetItem:FindFirstChild("Button")
+        if button then
+            -- Fire click connection
+            local connections = getconnections(button.MouseButton1Click)
+            if connections and #connections > 0 then
+                connections[1]:Fire()
+                print("Found and clicked user:", targetUsername)
+            else
+                print("No MouseButton1Click connections found for", targetUsername)
+            end
+        else
+            print("Button not found in", targetUsername)
+        end
+    else
+        print("User not found:", targetUsername)
+    end
+end
+
+-- เรียกใช้ฟังก์ชัน
+selectUserAndFire()
