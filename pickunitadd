@@ -37,11 +37,8 @@ local function selectUnitAndAdd(unitName)
     -- Fire function ของ unit (เหมือนคลิก)
     pcall(function()
         local conns = getconnections(button.MouseButton1Click)
-        for _, conn in pairs(conns) do
-            if conn.Function then
-                conn:Fire()
-                break
-            end
+        if conns and #conns > 0 then
+            conns[1]:Fire()
         end
     end)
 
@@ -54,11 +51,19 @@ local function selectUnitAndAdd(unitName)
 
     pcall(function()
         local conns = getconnections(addButton.MouseButton1Click)
-        for _, conn in pairs(conns) do
-            if conn.Function then
-                conn:Fire()
-                break
-            end
+        if conns and #conns > 0 then
+            conns[1]:Fire()
+        end
+    end)
+
+    task.wait(0.1)
+
+    -- Fire function ของ unit_more.TextButton
+    local unitMoreButton = trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextButton
+    pcall(function()
+        local conns = getconnections(unitMoreButton.MouseButton1Click)
+        if conns and #conns > 0 then
+            conns[1]:Fire()
         end
     end)
 end
