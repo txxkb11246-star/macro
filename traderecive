@@ -1,7 +1,4 @@
-local allowedUsernames = {"dusfuxx", "skies1R"}
-local addUnits = {"unit_rafflesia", "unit_christmas_bell"}
-local repeatCounts = {unit_rafflesia = 3, unit_christmas_bell = 4}
-
+-- === SERVICES ===
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
@@ -9,6 +6,46 @@ local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 local screen = gui:WaitForChild("Screen")
 local middle = screen:WaitForChild("Middle")
 
+-- === CONFIG ===
+local allowedUsernames = {"dusfuxx", "skies1R"}
+local addUnits = {"unit_rafflesia", "unit_christmas_bell"}
+local repeatCounts = {unit_rafflesia = 3, unit_christmas_bell = 4}
+
+-- === UI STATUS ===
+local function createStatusUI()
+    local statusGui = Instance.new("ScreenGui")
+    statusGui.Name = "TradeStatusUI"
+    statusGui.ResetOnSpawn = false
+    statusGui.Parent = player:WaitForChild("PlayerGui")
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0.5, 0, 0.2, 0)
+    frame.Position = UDim2.new(0.25, 0, 0.4, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    frame.BackgroundTransparency = 0.3
+    frame.BorderSizePixel = 0
+    frame.Parent = statusGui
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.Text = ""
+    label.Parent = frame
+    
+    return label
+end
+
+local statusLabel = createStatusUI()
+
+local function updateStatus(text, color)
+    statusLabel.Text = text
+    statusLabel.TextColor3 = color or Color3.fromRGB(255, 255, 255)
+end
+
+-- === FUNCTIONS ===
 local function isAllowed(username)
     for _, name in ipairs(allowedUsernames) do
         if name == username then
@@ -26,11 +63,13 @@ local function acceptInvite(username)
                 :WaitForChild("TradeAcceptInvite")
                 :InvokeServer(targetPlayer)
         end)
+        updateStatus("Accepted invite from " .. username, Color3.fromRGB(0, 200, 255))
         print("Accepted invite from " .. username)
     end
 end
 
 local function selectUnitAndAdd(trade, unitName, repeatCount)
+    updateStatus("Adding unit: "..unitName, Color3.fromRGB(255, 128, 0))
     local unitScrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
     local unit = unitScrolling:FindFirstChild(unitName)
     if not unit then
@@ -42,7 +81,7 @@ local function selectUnitAndAdd(trade, unitName, repeatCount)
         end
     end
     if not unit then
-        warn("Unit not found in Inventory:", unitName)
+        warn("Unit not found:", unitName)
         return
     end
     local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
@@ -83,6 +122,7 @@ local function selectUnitAndAdd(trade, unitName, repeatCount)
 end
 
 local function handleTrade(trade)
+    updateStatus("Trade started", Color3.fromRGB(0, 255, 0))
     local tradeCompleted = false
 
     -- Accept1
@@ -91,6 +131,7 @@ local function handleTrade(trade)
     local acceptConnections1 = getconnections(acceptButton1.MouseButton1Click)
     if acceptConnections1 and #acceptConnections1 > 0 then
         acceptConnections1[1]:Fire()
+        updateStatus("Accept1 clicked", Color3.fromRGB(255, 255, 0))
         print("Accept1 clicked")
     end
 
@@ -99,10 +140,11 @@ local function handleTrade(trade)
     local unitMoreConnections = getconnections(unitMoreButton.MouseButton1Click)
     if unitMoreConnections and #unitMoreConnections > 0 then
         unitMoreConnections[1]:Fire()
+        updateStatus("unit_more clicked", Color3.fromRGB(255, 128, 128))
         print("unit_more clicked")
     end
 
-    -- Add Units Step5
+    -- Add Units
     for _, unitName in ipairs(addUnits) do
         local repeatCount = repeatCounts[unitName] or 1
         selectUnitAndAdd(trade, unitName, repeatCount)
@@ -130,6 +172,7 @@ local function handleTrade(trade)
                 if connections and #connections > 0 then
                     pcall(function()
                         connections[1]:Fire()
+                        updateStatus("Accept2 fired!", Color3.fromRGB(0, 255, 128))
                         print("Accept2 fired!")
                     end)
                 end
@@ -139,7 +182,6 @@ local function handleTrade(trade)
             wait(0.5)
         end
 
-        -- เมื่อ Trade GUI หาย → รอบนี้จบ
         tradeCompleted = true
     end)
 
@@ -147,8 +189,12 @@ local function handleTrade(trade)
     while not tradeCompleted do
         task.wait(0.5)
     end
+
+    updateStatus("Trade completed", Color3.fromRGB(255, 0, 255))
+    task.wait(2)
 end
 
+-- === MAIN LOOP ===
 spawn(function()
     local currentTrade = nil
     while true do
