@@ -76,7 +76,7 @@ else
 end
 
 -- === Step 6: Add units sequentially (Add list) ===
-local addUnits = {"unit_rafflesia", "unit_dragon", "unit_elf"} -- ยูนิตที่จะ Add
+local addUnits = {"unit_rafflesia", "unit_christmas_bell"} -- ยูนิตที่จะ Add
 local receiveUnits = {"unit_rafflesia"} -- ยูนิตที่จะตรวจสอบใน Receive
 
 local function selectUnitAndAdd(unitName)
