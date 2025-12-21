@@ -1,10 +1,8 @@
--- === CONFIG ===
 local addUnits = {"unit_rafflesia", "unit_christmas_bell"}
 local receiveUnits = {"unit_rafflesia"}
 local repeatCounts = {unit_rafflesia = 3, unit_christmas_bell = 4}
 local targetUsername = "skies1R"
 
--- === SERVICES ===
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
@@ -14,7 +12,6 @@ local sidebar = screen:WaitForChild("Left"):WaitForChild("Sidebar")
 
 local tradeButton = sidebar.Items.Trade.Items.Button
 
--- ฟังก์ชัน fire trade button
 local function fireTradeButton()
     local tradeConnections = getconnections(tradeButton.MouseButton1Click)
     if tradeConnections and #tradeConnections > 0 then
@@ -22,7 +19,6 @@ local function fireTradeButton()
     end
 end
 
--- ฟังก์ชันคลิก user ใน trade partner
 local function waitForUserAndClick(username)
     local tradePartnerFrame = middle:WaitForChild("TradePartner"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("ScrollingFrame")
     local targetItem
@@ -32,7 +28,6 @@ local function waitForUserAndClick(username)
         targetItem = tradePartnerFrame:FindFirstChild(username)
         wait(0.1)
     until targetItem or tick() - startTime > timeout
-
     if targetItem then
         local button = targetItem:FindFirstChild("Button")
         if button then
@@ -44,16 +39,14 @@ local function waitForUserAndClick(username)
     end
 end
 
--- Loop รอ trade, ถ้ายังไม่ขึ้นให้ accept invite ใหม่เรื่อย ๆ
 local trade
 repeat
     fireTradeButton()
     waitForUserAndClick(targetUsername)
     trade = middle:FindFirstChild("Trade")
-    wait(0.5)
+    wait(5)
 until trade
 
--- === ACCEPT STEP 1 ===
 local acceptButton1 = trade.Terms.Items.Buttons.Items.Accept
 task.wait(6)
 local acceptConnections1 = getconnections(acceptButton1.MouseButton1Click)
@@ -61,14 +54,12 @@ if acceptConnections1 and #acceptConnections1 > 0 then
     acceptConnections1[1]:Fire()
 end
 
--- กดปุ่ม unit_more
 local unitMoreButton = trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextButton
 local unitMoreConnections = getconnections(unitMoreButton.MouseButton1Click)
 if unitMoreConnections and #unitMoreConnections > 0 then
     unitMoreConnections[1]:Fire()
 end
 
--- ฟังก์ชัน select unit และ add ตาม repeatCount
 local function selectUnitAndAdd(unitName, repeatCount)
     local unitScrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
     local unit = unitScrolling:FindFirstChild(unitName)
@@ -81,7 +72,6 @@ local function selectUnitAndAdd(unitName, repeatCount)
         end
     end
     if not unit then return end
-
     local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
     pcall(function()
         unitScrolling.CanvasPosition = Vector2.new(0, math.max(0, unit.AbsolutePosition.Y - unitScrolling.AbsolutePosition.Y - 50))
@@ -93,9 +83,7 @@ local function selectUnitAndAdd(unitName, repeatCount)
         button.Active = true
         button.ZIndex = 1000
     end
-
     task.wait(0.1)
-
     for i = 1, repeatCount do
         pcall(function()
             local conns = getconnections(button.MouseButton1Click)
@@ -104,7 +92,6 @@ local function selectUnitAndAdd(unitName, repeatCount)
             end
         end)
         task.wait(0.1)
-
         local amountAdd = trade:WaitForChild("AmountAdd"):WaitForChild("Frame"):WaitForChild("Frame")
         local addButton = amountAdd.Actions.Items:WaitForChild("Add")
         pcall(function()
@@ -117,13 +104,11 @@ local function selectUnitAndAdd(unitName, repeatCount)
     end
 end
 
--- เพิ่มทุกยูนิตตามลิสต์
 for _, unitName in ipairs(addUnits) do
     local repeatCount = repeatCounts[unitName] or 1
     selectUnitAndAdd(unitName, repeatCount)
 end
 
--- รอยูนิตที่เราจะรับจากฝั่งตรงข้าม
 local scrollingFrameReceive = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
 local acceptButton = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
 
@@ -135,19 +120,16 @@ for _, unitName in ipairs(receiveUnits) do
     until unitFrame
 end
 
--- Accept units ที่เราได้รับ
 local connections = getconnections(acceptButton.MouseButton1Click)
 if connections and #connections > 0 then
     connections[1]:Fire()
 end
 
--- รอจน trade จบ
 repeat
     trade = middle:FindFirstChild("Trade")
     wait(0.1)
 until not trade
 
--- ปิดเกมหลังเทรดเสร็จ
 pcall(function()
     game:Shutdown()
 end)
