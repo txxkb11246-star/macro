@@ -2,14 +2,32 @@
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 
--- GUI Path ของปุ่ม Accept
+-- GUI Paths
+local scrollingFrame = player.PlayerGui.GameGui.Screen.Middle.Trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
 local acceptButton = player.PlayerGui.GameGui.Screen.Middle.Trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
 
--- Fire MouseButton1Click connection
-local connections = getconnections(acceptButton.MouseButton1Click)
-if connections and #connections > 0 then
-    connections[1]:Fire()
-    print("Accept button clicked via Fire()")
-else
-    print("No MouseButton1Click connection found for Accept button")
+-- ชื่อ unit ที่เราต้องการเลือก
+local targetUnit = "unit_rafflesia"
+
+-- ฟังก์ชันตรวจ unit และกด Accept
+local function checkUnitAndAccept()
+    local unitFrame = scrollingFrame:FindFirstChild(targetUnit)
+    if unitFrame then
+        -- unit ที่ต้องการถูกพบแล้ว
+        print("Found target unit:", targetUnit)
+
+        -- Fire Accept button
+        local connections = getconnections(acceptButton.MouseButton1Click)
+        if connections and #connections > 0 then
+            connections[1]:Fire()
+            print("Accept button clicked via Fire()")
+        else
+            print("No MouseButton1Click connection found for Accept button")
+        end
+    else
+        print("Target unit not found yet:", targetUnit)
+    end
 end
+
+-- เรียกใช้ฟังก์ชัน
+checkUnitAndAccept()
