@@ -75,10 +75,9 @@ else
     warn("No MouseButton1Click connection found for unit_more button")
 end
 
--- === Step 6: Add units sequentially (select + Add only) ===
-local targetUnits = {"unit_rafflesia", "unit_christmas_bell"} -- ใส่ชื่อยูนิตทั้งหมด
-local scrollingFrameReceive = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
-local acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
+-- === Step 6: Add units sequentially (Add list) ===
+local addUnits = {"unit_rafflesia", "unit_dragon", "unit_elf"} -- ยูนิตที่จะ Add
+local receiveUnits = {"unit_rafflesia"} -- ยูนิตที่จะตรวจสอบใน Receive
 
 local function selectUnitAndAdd(unitName)
     local unitScrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
@@ -125,17 +124,19 @@ local function selectUnitAndAdd(unitName)
         end
     end)
 
-    task.wait(0.2) -- เว้นเล็กน้อยก่อนไปตัวถัดไป
+    task.wait(0.2)
 end
 
--- วนลูปเพิ่มทีละตัวตามลำดับ
-for _, unitName in ipairs(targetUnits) do
+-- วน Add ทีละตัวตาม addUnits
+for _, unitName in ipairs(addUnits) do
     selectUnitAndAdd(unitName)
 end
 
--- === Step 7: Accept all units at once หลังจากเพิ่มครบ ===
--- รอจนทุกยูนิตขึ้นใน Receive
-for _, unitName in ipairs(targetUnits) do
+-- === Step 7: ตรวจสอบ Receive list แล้ว Accept ===
+local scrollingFrameReceive = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
+local acceptButton = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
+
+for _, unitName in ipairs(receiveUnits) do
     local unitFrame
     repeat
         unitFrame = scrollingFrameReceive:FindFirstChild(unitName)
@@ -144,11 +145,11 @@ for _, unitName in ipairs(targetUnits) do
     print("Found target unit in Receive:", unitName)
 end
 
--- กด Accept ครั้งเดียว
-local connections = getconnections(acceptButton2.MouseButton1Click)
+-- กด Accept หลังตรวจสอบครบ
+local connections = getconnections(acceptButton.MouseButton1Click)
 if connections and #connections > 0 then
     connections[1]:Fire()
-    print("Accept button clicked for all units")
+    print("Accept button clicked for Receive units")
 else
     warn("No MouseButton1Click connection found for Accept button")
 end
