@@ -84,7 +84,6 @@ repeat
     fireTradeButton()
     waitForUserAndClick(targetUsername)
     trade = middle:FindFirstChild("Trade")
-    wait(5)
 until trade
 
 local acceptButton1 = trade.Terms.Items.Buttons.Items.Accept
