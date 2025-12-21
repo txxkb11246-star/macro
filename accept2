@@ -1,0 +1,15 @@
+-- Services
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- GUI Path ของปุ่ม Accept
+local acceptButton = player.PlayerGui.GameGui.Screen.Middle.Trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
+
+-- Fire MouseButton1Click connection
+local connections = getconnections(acceptButton.MouseButton1Click)
+if connections and #connections > 0 then
+    connections[1]:Fire()
+    print("Accept button clicked via Fire()")
+else
+    print("No MouseButton1Click connection found for Accept button")
+end
