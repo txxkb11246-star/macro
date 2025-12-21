@@ -4,26 +4,87 @@ local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 local screen = gui:WaitForChild("Screen")
 local middle = screen:WaitForChild("Middle")
-local trade = middle:WaitForChild("Trade")
+local sidebar = screen:WaitForChild("Left"):WaitForChild("Sidebar")
 
--- === FUNCTION ===
+-- === Step 1: Click Trade button ===
+local tradeButton = sidebar.Items.Trade.Items.Button
+local tradeConnections = getconnections(tradeButton.MouseButton1Click)
+if tradeConnections and #tradeConnections > 0 then
+    tradeConnections[1]:Fire()
+    print("Trade button clicked via Fire()")
+else
+    warn("No MouseButton1Click connection found for Trade button")
+end
+
+-- === Step 2: Select target username ===
+local targetUsername = "skies1R" -- เปลี่ยนตามต้องการ
+local tradePartnerFrame = middle:WaitForChild("TradePartner"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("ScrollingFrame")
+
+local function waitForUserAndClick(username)
+    local targetItem
+    local timeout = 5
+    local startTime = tick()
+    repeat
+        targetItem = tradePartnerFrame:FindFirstChild(username)
+        wait(0.1)
+    until targetItem or tick() - startTime > timeout
+
+    if targetItem then
+        local button = targetItem:FindFirstChild("Button")
+        if button then
+            local userConnections = getconnections(button.MouseButton1Click)
+            if userConnections and #userConnections > 0 then
+                userConnections[1]:Fire()
+                print("Clicked user:", username)
+            end
+        end
+    else
+        warn("User not found:", username)
+    end
+end
+
+waitForUserAndClick(targetUsername)
+
+-- === Step 3: Wait for Trade GUI and click Accept ===
+local trade
+repeat
+    trade = middle:FindFirstChild("Trade")
+    wait(0.1)
+until trade
+
+local acceptButton = trade.Terms.Items.Buttons.Items.Accept
+local acceptConnections = getconnections(acceptButton.MouseButton1Click)
+if acceptConnections and #acceptConnections > 0 then
+    acceptConnections[1]:Fire()
+    print("Accept button clicked via Fire()")
+else
+    warn("No MouseButton1Click connection found for Accept button")
+end
+
+-- === Step 4: Click unit_more button ===
+local unitMoreButton = trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextButton
+local unitMoreConnections = getconnections(unitMoreButton.MouseButton1Click)
+if unitMoreConnections and #unitMoreConnections > 0 then
+    unitMoreConnections[1]:Fire()
+    print("Clicked unit_more button")
+else
+    warn("No MouseButton1Click connection found for unit_more button")
+end
+
+-- === Step 5: Select unit and Add ===
 local function selectUnitAndAdd(unitName)
-    -- PATH TO SCROLLING FRAME
-    local scrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
-
-    -- หา unit
-    local unit = scrolling:WaitForChild(unitName)
+    local unitScrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
+    local unit = unitScrolling:WaitForChild(unitName)
     local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
 
-    -- เลื่อนให้ unit อยู่ในจอ
+    -- Scroll unit into view
     pcall(function()
-        scrolling.CanvasPosition = Vector2.new(
+        unitScrolling.CanvasPosition = Vector2.new(
             0,
-            math.max(0, unit.AbsolutePosition.Y - scrolling.AbsolutePosition.Y - 50)
+            math.max(0, unit.AbsolutePosition.Y - unitScrolling.AbsolutePosition.Y - 50)
         )
     end)
 
-    -- ทำให้ unit + ปุ่ม visible และ active
     unit.Visible = true
     unit.Active = true
     if button then
@@ -34,39 +95,28 @@ local function selectUnitAndAdd(unitName)
 
     task.wait(0.1)
 
-    -- Fire function ของ unit (เหมือนคลิก)
+    -- Click unit
     pcall(function()
         local conns = getconnections(button.MouseButton1Click)
         if conns and #conns > 0 then
             conns[1]:Fire()
+            print("Clicked unit:", unitName)
         end
     end)
 
     task.wait(0.1)
 
-    -- Fire function ของ Add Button
-    local amountAdd = trade:WaitForChild("AmountAdd")
-    local frame = amountAdd:WaitForChild("Frame"):WaitForChild("Frame")
-    local addButton = frame.Actions.Items:WaitForChild("Add")
-
+    -- Click Add button
+    local amountAdd = trade:WaitForChild("AmountAdd"):WaitForChild("Frame"):WaitForChild("Frame")
+    local addButton = amountAdd.Actions.Items:WaitForChild("Add")
     pcall(function()
         local conns = getconnections(addButton.MouseButton1Click)
         if conns and #conns > 0 then
             conns[1]:Fire()
-        end
-    end)
-
-    task.wait(0.1)
-
-    -- Fire function ของ unit_more.TextButton
-    local unitMoreButton = trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextButton
-    pcall(function()
-        local conns = getconnections(unitMoreButton.MouseButton1Click)
-        if conns and #conns > 0 then
-            conns[1]:Fire()
+            print("Clicked Add button for unit:", unitName)
         end
     end)
 end
 
--- === USAGE ===
-selectUnitAndAdd("unit_rafflesia") -- เปลี่ยนเป็นชื่อ unit ที่ต้องการ
+-- === Usage ===
+selectUnitAndAdd("unit_rafflesia") -- เปลี่ยนเป็น unit ที่ต้องการ
