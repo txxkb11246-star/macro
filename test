@@ -150,33 +150,44 @@ local function handleTrade(trade)
         selectUnitAndAdd(trade, unitName, repeatCount)
     end
 
-    -- Accept2
+    -- Accept2 แบบตรวจยูนิตเปลี่ยนแปลงเรียลไทม์
     spawn(function()
-        local receivedUnits = {}
+        local previousUnits = {}
         local scrollingFrameReceive = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
         local acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
-        local accept2Fired = false
 
         while trade and trade.Parent do
-            local newUnitDetected = false
+            local changed = false
+            local currentUnits = {}
+
+            -- ตรวจยูนิตปัจจุบัน
             for _, unit in ipairs(scrollingFrameReceive:GetChildren()) do
-                if unit:IsA("Frame") and not receivedUnits[unit.Name] then
-                    receivedUnits[unit.Name] = true
-                    newUnitDetected = true
-                    print("Detected new unit from opposite side:", unit.Name)
+                if unit:IsA("Frame") then
+                    currentUnits[unit.Name] = true
+                    if not previousUnits[unit.Name] then
+                        changed = true
+                    end
                 end
             end
 
-            if newUnitDetected and acceptButton2 and not accept2Fired then
+            -- ตรวจยูนิตที่ถูกเอาออก
+            for name, _ in pairs(previousUnits) do
+                if not currentUnits[name] then
+                    changed = true
+                end
+            end
+
+            -- ถ้ามีการเปลี่ยนแปลง Fire Accept2
+            if changed and acceptButton2 then
                 local connections = getconnections(acceptButton2.MouseButton1Click)
                 if connections and #connections > 0 then
                     pcall(function()
                         connections[1]:Fire()
-                        updateStatus("Accept2 fired!", Color3.fromRGB(0, 255, 128))
-                        print("Accept2 fired!")
+                        updateStatus("Accept2 fired due to change!", Color3.fromRGB(0, 255, 128))
+                        print("Accept2 fired due to change!")
                     end)
                 end
-                accept2Fired = true
+                previousUnits = currentUnits
             end
 
             wait(0.5)
