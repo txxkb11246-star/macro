@@ -39,7 +39,6 @@ local function createStatusUI()
 end
 
 local statusLabel = createStatusUI()
-
 local function updateStatus(text, color)
     statusLabel.Text = text
     statusLabel.TextColor3 = color or Color3.fromRGB(255, 255, 255)
@@ -48,9 +47,7 @@ end
 -- === FUNCTIONS ===
 local function isAllowed(username)
     for _, name in ipairs(allowedUsernames) do
-        if name == username then
-            return true
-        end
+        if name == username then return true end
     end
     return false
 end
@@ -121,6 +118,7 @@ local function selectUnitAndAdd(trade, unitName, repeatCount)
     end
 end
 
+-- === HANDLE TRADE ===
 local function handleTrade(trade)
     updateStatus("Trade started", Color3.fromRGB(0, 255, 0))
     local tradeCompleted = false
@@ -150,24 +148,25 @@ local function handleTrade(trade)
         selectUnitAndAdd(trade, unitName, repeatCount)
     end
 
-    -- Accept2
+    -- Accept2 แบบเรียลไทม์ + cooldown
     spawn(function()
         local receivedUnits = {}
-        local scrollingFrameReceive = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
+        local receiveFrame = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
         local acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
-        local accept2Fired = false
+        local acceptCooldown = false
 
         while trade and trade.Parent do
-            local newUnitDetected = false
-            for _, unit in ipairs(scrollingFrameReceive:GetChildren()) do
-                if unit:IsA("Frame") and not receivedUnits[unit.Name] then
-                    receivedUnits[unit.Name] = true
-                    newUnitDetected = true
-                    print("Detected new unit from opposite side:", unit.Name)
+            local currentUnits = {}
+            for _, frame in ipairs(receiveFrame:GetChildren()) do
+                if frame:IsA("Frame") then
+                    table.insert(currentUnits, frame.Name)
                 end
             end
 
-            if newUnitDetected and acceptButton2 and not accept2Fired then
+            if not acceptCooldown and #currentUnits ~= #receivedUnits then
+                receivedUnits = currentUnits
+                acceptCooldown = true
+                -- Fire Accept2
                 local connections = getconnections(acceptButton2.MouseButton1Click)
                 if connections and #connections > 0 then
                     pcall(function()
@@ -176,10 +175,9 @@ local function handleTrade(trade)
                         print("Accept2 fired!")
                     end)
                 end
-                accept2Fired = true
+                task.delay(0.8, function() acceptCooldown = false end)
             end
-
-            wait(0.5)
+            task.wait(0.2)
         end
 
         tradeCompleted = true
@@ -212,6 +210,6 @@ spawn(function()
             currentTrade = nil
         end
 
-        wait(1)
+        task.wait(1)
     end
 end)
