@@ -1,48 +1,72 @@
+-- === SERVICES ===
 local Players = game:GetService("Players")
+local GuiService = game:GetService("GuiService")
+local VIM = game:GetService("VirtualInputManager")
 local player = Players.LocalPlayer
-local gui = player.PlayerGui.GameGui.Screen.Middle.Trade
+local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
+local screen = gui:WaitForChild("Screen")
+local middle = screen:WaitForChild("Middle")
+local trade = middle:WaitForChild("Trade")
 
--- Slider และ Add Button
-local slider = gui.AmountAdd.Frame.Frame.Items.Items.Picker.SliderContainer.DragCircle
-local addButton = gui.AmountAdd.Frame.Frame.Actions.Items.Add
+-- === PATH TO SCROLLING FRAME ===
+local scrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
 
--- ฟังก์ชัน Fire Event ของปุ่ม
-local function fireButton(button)
-    local connections = getconnections(button.MouseButton1Click)
-    if connections[1] then
-        connections[1]:Fire()
-        print("Add Button fired!")
-    else
-        warn("No connections found on Add Button")
-    end
+-- === 1) หา unit ที่ต้องการ ===
+local unitName = "unit_rafflesia" -- เปลี่ยนเป็นชื่อ unit ที่ต้องการ
+local unit = scrolling:WaitForChild(unitName)
+local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
+
+-- เลื่อนให้ unit อยู่ในจอ
+pcall(function()
+    scrolling.CanvasPosition = Vector2.new(
+        0,
+        math.max(0, unit.AbsolutePosition.Y - scrolling.AbsolutePosition.Y - 50)
+    )
+end)
+
+-- บังคับสถานะ GUI
+unit.Visible = true
+unit.Active = true
+if button then
+    button.Visible = true
+    button.Active = true
+    button.ZIndex = 1000
 end
 
--- ฟังก์ชัน Fire Slider Value update
-local function fireSlider(slider)
-    -- ตรวจสอบ Slider.Changed
-    local cons = getconnections(slider.Changed)
-    if #cons > 0 then
-        for i, con in ipairs(cons) do
-            con:Fire() -- Fire ทุกฟังก์ชันที่เชื่อมกับ Slider
+-- รอให้ GUI render
+task.wait(0.2)
+
+-- โฟกัส GUI เหมือนเอาเมาส์ชี้
+GuiService.SelectedObject = button or unit
+task.wait(0.05)
+
+-- คำนวณตำแหน่งกลาง unit
+local pos = (button or unit).AbsolutePosition + ((button or unit).AbsoluteSize / 2)
+
+-- ขยับเมาส์ + คลิก unit จริง
+VIM:SendMouseMoveEvent(pos.X, pos.Y, game)
+task.wait(0.03)
+VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 1)
+task.wait(0.06)
+VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 1)
+
+-- กด Enter เผื่อเกมต้อง confirm
+task.wait(0.05)
+VIM:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+task.wait(0.05)
+VIM:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+
+-- === 2) Fire Add Button ===
+local amountAdd = trade:WaitForChild("AmountAdd")
+local frame = amountAdd:WaitForChild("Frame"):WaitForChild("Frame")
+local addButton = frame.Actions.Items:WaitForChild("Add")
+
+pcall(function()
+    local connections = getconnections(addButton.MouseButton1Click)
+    for _, conn in pairs(connections) do
+        if conn.Function then
+            conn:Fire()
+            break
         end
-        print("Slider fired!")
-    else
-        warn("No connections found on Slider.Changed")
     end
-
-    -- บางเกมอาจเชื่อมกับ InputBegan / MouseButton1Down
-    local inputCons = getconnections(slider.MouseButton1Down)
-    if #inputCons > 0 then
-        for i, con in ipairs(inputCons) do
-            con:Fire()
-        end
-        print("Slider MouseButton1Down fired!")
-    end
-end
-
--- === ทำงาน ===
--- 1) Fire Slider ก่อนให้ Value update
-fireSlider(slider)
-
--- 2) Fire Add Button
-fireButton(addButton)
+end)
