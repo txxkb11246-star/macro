@@ -83,6 +83,9 @@ local function selectUnitAndAdd(trade, unitName, repeatCount)
 end
 
 local function handleTrade(trade)
+    local tradeCompleted = false
+
+    -- Accept1
     local acceptButton1 = trade.Terms.Items.Buttons.Items.Accept
     task.wait(6)
     local acceptConnections1 = getconnections(acceptButton1.MouseButton1Click)
@@ -90,20 +93,28 @@ local function handleTrade(trade)
         acceptConnections1[1]:Fire()
         print("Accept1 clicked")
     end
+
+    -- unit_more
     local unitMoreButton = trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextButton
     local unitMoreConnections = getconnections(unitMoreButton.MouseButton1Click)
     if unitMoreConnections and #unitMoreConnections > 0 then
         unitMoreConnections[1]:Fire()
         print("unit_more clicked")
     end
+
+    -- Add Units Step5
     for _, unitName in ipairs(addUnits) do
         local repeatCount = repeatCounts[unitName] or 1
         selectUnitAndAdd(trade, unitName, repeatCount)
     end
+
+    -- Accept2
     spawn(function()
         local receivedUnits = {}
         local scrollingFrameReceive = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
         local acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
+        local accept2Fired = false
+
         while trade and trade.Parent do
             local newUnitDetected = false
             for _, unit in ipairs(scrollingFrameReceive:GetChildren()) do
@@ -113,7 +124,8 @@ local function handleTrade(trade)
                     print("Detected new unit from opposite side:", unit.Name)
                 end
             end
-            if newUnitDetected and acceptButton2 then
+
+            if newUnitDetected and acceptButton2 and not accept2Fired then
                 local connections = getconnections(acceptButton2.MouseButton1Click)
                 if connections and #connections > 0 then
                     pcall(function()
@@ -121,10 +133,20 @@ local function handleTrade(trade)
                         print("Accept2 fired!")
                     end)
                 end
+                accept2Fired = true
             end
+
             wait(0.5)
         end
+
+        -- เมื่อ Trade GUI หาย → รอบนี้จบ
+        tradeCompleted = true
     end)
+
+    -- รอจน Trade จบ
+    while not tradeCompleted do
+        task.wait(0.5)
+    end
 end
 
 spawn(function()
@@ -135,6 +157,7 @@ spawn(function()
                 acceptInvite(p.Name)
             end
         end
+
         local trade = middle:FindFirstChild("Trade")
         if trade and trade.Parent and trade ~= currentTrade then
             currentTrade = trade
@@ -142,6 +165,7 @@ spawn(function()
         elseif not trade then
             currentTrade = nil
         end
+
         wait(1)
     end
 end)
