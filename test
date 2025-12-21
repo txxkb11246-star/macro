@@ -123,24 +123,25 @@ end
 
 selectUnitAndAdd(targetUnit)
 
--- === Step 7: Accept2 - Check unit in Receive and Accept ===
+-- === Step 7: Accept2 - Wait for unit in Receive and click Accept ===
 local scrollingFrameReceive = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
 local acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
 
-local function checkUnitAndAccept2(unitName)
-    local unitFrame = scrollingFrameReceive:FindFirstChild(unitName)
-    if unitFrame then
-        print("Found target unit in Receive:", unitName)
-        local connections = getconnections(acceptButton2.MouseButton1Click)
-        if connections and #connections > 0 then
-            connections[1]:Fire()
-            print("Accept2 button clicked via Fire()")
-        else
-            warn("No MouseButton1Click connection found for Accept2 button")
-        end
+local function waitForUnitAndAccept(unitName)
+    local unitFrame
+    repeat
+        unitFrame = scrollingFrameReceive:FindFirstChild(unitName)
+        wait(0.1)
+    until unitFrame
+
+    print("Found target unit in Receive:", unitName)
+    local connections = getconnections(acceptButton2.MouseButton1Click)
+    if connections and #connections > 0 then
+        connections[1]:Fire()
+        print("Accept2 button clicked via Fire()")
     else
-        warn("Target unit not found yet in Receive:", unitName)
+        warn("No MouseButton1Click connection found for Accept2 button")
     end
 end
 
-checkUnitAndAccept2(targetUnit)
+waitForUnitAndAccept(targetUnit)
