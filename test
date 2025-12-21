@@ -1,19 +1,10 @@
 -- === SERVICES ===
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 local screen = gui:WaitForChild("Screen")
 local middle = screen:WaitForChild("Middle")
 local sidebar = screen:WaitForChild("Left"):WaitForChild("Sidebar")
-
--- === RemoteEvent สำหรับสั่ง Shutdown ===
-local shutdownEvent = ReplicatedStorage:FindFirstChild("ShutdownEvent")
-if not shutdownEvent then
-    shutdownEvent = Instance.new("RemoteEvent")
-    shutdownEvent.Name = "ShutdownEvent"
-    shutdownEvent.Parent = ReplicatedStorage
-end
 
 -- === Step 1: Click Trade button ===
 local tradeButton = sidebar.Items.Trade.Items.Button
@@ -176,10 +167,11 @@ else
     warn("Step 7: No MouseButton1Click connection found for Accept button")
 end
 
--- === Step 8: รอ Trade GUI หายก่อนส่ง Shutdown ===
+-- === Step 8: รอ Trade GUI หายก่อน Shutdown ===
 repeat
     trade = middle:FindFirstChild("Trade")
     wait(0.1)
 until not trade
-print("Step 8: Trade GUI closed, sending shutdown request")
-shutdownEvent:FireServer()
+
+print("Step 8: Trade GUI closed, shutting down game")
+game:Shutdown()
