@@ -1,26 +1,19 @@
 -- === SERVICES ===
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 local screen = gui:WaitForChild("Screen")
 local middle = screen:WaitForChild("Middle")
 local sidebar = screen:WaitForChild("Left"):WaitForChild("Sidebar")
 
--- === RemoteEvent สำหรับ Shutdown ===
-local shutdownEvent = ReplicatedStorage:FindFirstChild("ShutdownEvent")
-if not shutdownEvent then
-    shutdownEvent = Instance.new("RemoteEvent")
-    shutdownEvent.Name = "ShutdownEvent"
-    shutdownEvent.Parent = ReplicatedStorage
-end
-
 -- === Step 1: Click Trade button ===
 local tradeButton = sidebar.Items.Trade.Items.Button
 local tradeConnections = getconnections(tradeButton.MouseButton1Click)
 if tradeConnections and #tradeConnections > 0 then
     tradeConnections[1]:Fire()
-    print("Step 1: Trade button clicked")
+    print("[Step 1] Trade button clicked")
+else
+    warn("[Step 1] No MouseButton1Click connection found for Trade button")
 end
 
 -- === Step 2: Select target username ===
@@ -42,9 +35,11 @@ local function waitForUserAndClick(username)
             local userConnections = getconnections(button.MouseButton1Click)
             if userConnections and #userConnections > 0 then
                 userConnections[1]:Fire()
-                print("Step 2: Clicked user", username)
+                print("[Step 2] Clicked user:", username)
             end
         end
+    else
+        warn("[Step 2] User not found:", username)
     end
 end
 
@@ -56,15 +51,16 @@ repeat
     trade = middle:FindFirstChild("Trade")
     wait(0.1)
 until trade
-print("Step 3: Trade GUI found")
+print("[Step 3] Trade GUI found")
 
 -- === Step 4: Accept1 ===
 local acceptButton1 = trade.Terms.Items.Buttons.Items.Accept
+print("[Step 4] Waiting 6 seconds before clicking Accept1...")
 task.wait(6)
 local acceptConnections1 = getconnections(acceptButton1.MouseButton1Click)
 if acceptConnections1 and #acceptConnections1 > 0 then
     acceptConnections1[1]:Fire()
-    print("Step 4: Accept1 clicked")
+    print("[Step 4] Accept1 clicked")
 end
 
 -- === Step 5: Click unit_more ===
@@ -72,7 +68,7 @@ local unitMoreButton = trade.Items.Container.Items.Left.Give.Items.ScrollingFram
 local unitMoreConnections = getconnections(unitMoreButton.MouseButton1Click)
 if unitMoreConnections and #unitMoreConnections > 0 then
     unitMoreConnections[1]:Fire()
-    print("Step 5: Clicked unit_more")
+    print("[Step 5] Clicked unit_more")
 end
 
 -- === Step 6: Add units sequentially ===
@@ -91,7 +87,10 @@ local function selectUnitAndAdd(unitName, repeatCount)
             end
         end
     end
-    if not unit then return end
+    if not unit then
+        warn("[Step 6] Unit not found in Inventory:", unitName)
+        return
+    end
 
     local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
     pcall(function()
@@ -115,7 +114,7 @@ local function selectUnitAndAdd(unitName, repeatCount)
             local conns = getconnections(button.MouseButton1Click)
             if conns and #conns > 0 then
                 conns[1]:Fire()
-                print("Clicked unit", unitName, "round", i)
+                print("[Step 6] Clicked unit:", unitName, "round", i)
             end
         end)
         task.wait(0.1)
@@ -125,7 +124,7 @@ local function selectUnitAndAdd(unitName, repeatCount)
             local conns = getconnections(addButton.MouseButton1Click)
             if conns and #conns > 0 then
                 conns[1]:Fire()
-                print("Clicked Add button for unit", unitName, "round", i)
+                print("[Step 6] Clicked Add button for unit:", unitName, "round", i)
             end
         end)
         task.wait(0.3)
@@ -152,13 +151,15 @@ end
 local connections = getconnections(acceptButton.MouseButton1Click)
 if connections and #connections > 0 then
     connections[1]:Fire()
+    print("[Step 7] Accept clicked for Receive units")
 end
 
--- === Step 8: Wait Trade GUI Closed & FireServer ===
+-- === Step 8: Wait Trade GUI Closed & Shutdown ===
 repeat
     trade = middle:FindFirstChild("Trade")
     wait(0.1)
 until not trade
 
-print("Trade GUI closed, requesting server shutdown")
-shutdownEvent:FireServer()
+print("[Step 8] Trade GUI closed, shutting down game")
+task.wait(0.2) -- เล็กน้อยเพื่อให้ GUI ปิดเรียบร้อย
+game:Shutdown()
