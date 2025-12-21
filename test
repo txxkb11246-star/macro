@@ -75,11 +75,12 @@ else
     warn("No MouseButton1Click connection found for unit_more button")
 end
 
--- === Step 6: Add units sequentially (Add list) ===
+-- === Step 6: Add units sequentially (Add list) with repeat counts ===
 local addUnits = {"unit_rafflesia", "unit_christmas_bell"} -- ยูนิตที่จะ Add
 local receiveUnits = {"unit_rafflesia"} -- ยูนิตที่จะตรวจสอบใน Receive
+local repeatCounts = {unit_rafflesia = 3, unit_christmas_bell = 2} -- จำนวนรอบ Add แต่ละ unit
 
-local function selectUnitAndAdd(unitName)
+local function selectUnitAndAdd(unitName, repeatCount)
     local unitScrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
     local unit = unitScrolling:WaitForChild(unitName)
     local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
@@ -102,34 +103,37 @@ local function selectUnitAndAdd(unitName)
 
     task.wait(0.1)
 
-    -- Click unit
-    pcall(function()
-        local conns = getconnections(button.MouseButton1Click)
-        if conns and #conns > 0 then
-            conns[1]:Fire()
-            print("Clicked unit:", unitName)
-        end
-    end)
+    for i = 1, repeatCount do
+        -- Click unit
+        pcall(function()
+            local conns = getconnections(button.MouseButton1Click)
+            if conns and #conns > 0 then
+                conns[1]:Fire()
+                print("Clicked unit:", unitName, "round", i)
+            end
+        end)
 
-    task.wait(0.1)
+        task.wait(0.1)
 
-    -- Click Add
-    local amountAdd = trade:WaitForChild("AmountAdd"):WaitForChild("Frame"):WaitForChild("Frame")
-    local addButton = amountAdd.Actions.Items:WaitForChild("Add")
-    pcall(function()
-        local conns = getconnections(addButton.MouseButton1Click)
-        if conns and #conns > 0 then
-            conns[1]:Fire()
-            print("Clicked Add button for unit:", unitName)
-        end
-    end)
+        -- Click Add
+        local amountAdd = trade:WaitForChild("AmountAdd"):WaitForChild("Frame"):WaitForChild("Frame")
+        local addButton = amountAdd.Actions.Items:WaitForChild("Add")
+        pcall(function()
+            local conns = getconnections(addButton.MouseButton1Click)
+            if conns and #conns > 0 then
+                conns[1]:Fire()
+                print("Clicked Add button for unit:", unitName, "round", i)
+            end
+        end)
 
-    task.wait(0.2)
+        task.wait(0.2)
+    end
 end
 
--- วน Add ทีละตัวตาม addUnits
+-- วน Add ทีละตัวตาม addUnits และ repeatCounts
 for _, unitName in ipairs(addUnits) do
-    selectUnitAndAdd(unitName)
+    local repeatCount = repeatCounts[unitName] or 1
+    selectUnitAndAdd(unitName, repeatCount)
 end
 
 -- === Step 7: ตรวจสอบ Receive list แล้ว Accept ===
