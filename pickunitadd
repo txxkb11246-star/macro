@@ -1,1 +1,67 @@
+-- === SERVICES ===
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
+local screen = gui:WaitForChild("Screen")
+local middle = screen:WaitForChild("Middle")
+local trade = middle:WaitForChild("Trade")
 
+-- === FUNCTION ===
+local function selectUnitAndAdd(unitName)
+    -- PATH TO SCROLLING FRAME
+    local scrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
+
+    -- หา unit
+    local unit = scrolling:WaitForChild(unitName)
+    local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
+
+    -- เลื่อนให้ unit อยู่ในจอ
+    pcall(function()
+        scrolling.CanvasPosition = Vector2.new(
+            0,
+            math.max(0, unit.AbsolutePosition.Y - scrolling.AbsolutePosition.Y - 50)
+        )
+    end)
+
+    -- ทำให้ unit + ปุ่ม visible และ active
+    unit.Visible = true
+    unit.Active = true
+    if button then
+        button.Visible = true
+        button.Active = true
+        button.ZIndex = 1000
+    end
+
+    task.wait(0.1)
+
+    -- Fire function ของ unit (เหมือนคลิก)
+    pcall(function()
+        local conns = getconnections(button.MouseButton1Click)
+        for _, conn in pairs(conns) do
+            if conn.Function then
+                conn:Fire()
+                break
+            end
+        end
+    end)
+
+    task.wait(0.1)
+
+    -- Fire function ของ Add Button
+    local amountAdd = trade:WaitForChild("AmountAdd")
+    local frame = amountAdd:WaitForChild("Frame"):WaitForChild("Frame")
+    local addButton = frame.Actions.Items:WaitForChild("Add")
+
+    pcall(function()
+        local conns = getconnections(addButton.MouseButton1Click)
+        for _, conn in pairs(conns) do
+            if conn.Function then
+                conn:Fire()
+                break
+            end
+        end
+    end)
+end
+
+-- === USAGE ===
+selectUnitAndAdd("unit_rafflesia") -- เปลี่ยนเป็นชื่อ unit ที่ต้องการ
