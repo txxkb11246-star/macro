@@ -12,8 +12,6 @@ local tradeConnections = getconnections(tradeButton.MouseButton1Click)
 if tradeConnections and #tradeConnections > 0 then
     tradeConnections[1]:Fire()
     print("[Step 1] Trade button clicked")
-else
-    warn("[Step 1] No MouseButton1Click connection found for Trade button")
 end
 
 -- === Step 2: Select target username ===
@@ -38,8 +36,6 @@ local function waitForUserAndClick(username)
                 print("[Step 2] Clicked user:", username)
             end
         end
-    else
-        warn("[Step 2] User not found:", username)
     end
 end
 
@@ -88,7 +84,7 @@ local function selectUnitAndAdd(unitName, repeatCount)
         end
     end
     if not unit then
-        warn("[Step 6] Unit not found in Inventory:", unitName)
+        warn("[Step 6] Unit not found:", unitName)
         return
     end
 
@@ -160,6 +156,8 @@ repeat
     wait(0.1)
 until not trade
 
-print("[Step 8] Trade GUI closed, shutting down game")
-task.wait(0.2) -- เล็กน้อยเพื่อให้ GUI ปิดเรียบร้อย
-game:Shutdown()
+print("[Step 8] Trade GUI closed, shutting down game NOW")
+-- เรียก shutdown แบบ direct call ให้ Delta execute 100%
+pcall(function()
+    game:Shutdown()
+end)
