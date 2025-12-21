@@ -1,6 +1,4 @@
--- === FIRE ACCEPT2 FUNCTION (Standalone + Ready to Use) ===
--- trade: ตัว Trade GUI
--- receiveFrame: frame ของยูนิตฝั่ง Receive
+-- === FIRE ACCEPT2 FUNCTION (เฉพาะตอนมีตัวเพิ่ม/เปลี่ยน) ===
 local function fireAccept2(trade, receiveFrame)
     if not trade or not receiveFrame then
         warn("fireAccept2: trade หรือ receiveFrame ไม่ถูกต้อง")
@@ -20,7 +18,20 @@ local function fireAccept2(trade, receiveFrame)
                 end
             end
 
-            if not acceptCooldown and #currentUnits ~= #lastUnits then
+            -- เฉพาะตอนมียูนิตเพิ่มหรือเปลี่ยนตัว
+            local hasChange = false
+            if #currentUnits ~= #lastUnits then
+                hasChange = true
+            else
+                for i, name in ipairs(currentUnits) do
+                    if name ~= lastUnits[i] then
+                        hasChange = true
+                        break
+                    end
+                end
+            end
+
+            if hasChange and not acceptCooldown then
                 lastUnits = currentUnits
                 acceptCooldown = true
 
@@ -29,11 +40,11 @@ local function fireAccept2(trade, receiveFrame)
                 if connections and #connections > 0 then
                     pcall(function()
                         connections[1]:Fire()
-                        print("[fireAccept2] Accept2 fired! จำนวนยูนิตตอนนี้:", #currentUnits)
+                        print("[fireAccept2] Accept2 fired! จำนวนยูนิต:", #currentUnits)
                     end)
                 end
 
-                -- Cooldown 0.8 วินาที ป้องกัน Fire ซ้ำ
+                -- Cooldown ป้องกัน Fire ซ้ำ
                 task.delay(0.8, function()
                     acceptCooldown = false
                 end)
@@ -46,7 +57,6 @@ local function fireAccept2(trade, receiveFrame)
 end
 
 -- === ตัวอย่างการเรียกใช้งานทันที ===
--- ตรวจสอบว่ามี Trade เปิดอยู่
 local middle = game:GetService("Players").LocalPlayer.PlayerGui:WaitForChild("GameGui"):WaitForChild("Screen"):WaitForChild("Middle")
 local trade = middle:FindFirstChild("Trade")
 
