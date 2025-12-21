@@ -153,19 +153,26 @@ for _, unitName in ipairs(addUnits) do
     selectUnitAndAdd(unitName, repeatCount)
 end
 
--- === Step 6: Accept2 หลัง Add Units เสร็จ ===
-local acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
-if acceptButton2 then
-    local connections = getconnections(acceptButton2.MouseButton1Click)
-    if connections and #connections > 0 then
-        pcall(function()
-            connections[1]:Fire()
-            print("Accept2 clicked after adding units!")
-        end)
-    else
-        warn("No MouseButton1Click connection found for Accept2 button, retrying...")
-        -- หากต้องการสามารถ loop ตรวจสอบและ Fire ใหม่ได้
+-- === Step 6: Accept2 หลัง Add Units เสร็จ (loop ตรวจสอบปุ่มจนกว่าจะ Fire สำเร็จ) ===
+spawn(function()
+    while true do
+        if trade and trade.Parent then
+            local acceptButton2
+            pcall(function()
+                acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
+            end)
+
+            if acceptButton2 then
+                local connections = getconnections(acceptButton2.MouseButton1Click)
+                if connections and #connections > 0 then
+                    pcall(function()
+                        connections[1]:Fire()
+                        print("Accept2 clicked after adding units!")
+                    end)
+                    break -- Fire สำเร็จแล้ว ออกจาก loop
+                end
+            end
+        end
+        wait(0.5) -- ตรวจสอบใหม่ทุกครึ่งวินาที
     end
-else
-    warn("Accept2 button not found, cannot click!")
-end
+end)
