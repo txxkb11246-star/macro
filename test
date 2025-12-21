@@ -127,7 +127,7 @@ local function handleTrade(trade)
 
     -- Accept1
     local acceptButton1 = trade.Terms.Items.Buttons.Items.Accept
-    
+    task.wait(6)
     local acceptConnections1 = getconnections(acceptButton1.MouseButton1Click)
     if acceptConnections1 and #acceptConnections1 > 0 then
         acceptConnections1[1]:Fire()
