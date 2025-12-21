@@ -1,0 +1,15 @@
+-- Services
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+-- GUI Path ของปุ่ม Trade
+local tradeButton = player.PlayerGui.GameGui.Screen.Left.Sidebar.Items.Trade.Items.Button
+
+-- Fire MouseButton1Click connection
+local connections = getconnections(tradeButton.MouseButton1Click)
+if connections and #connections > 0 then
+    connections[1]:Fire()
+    print("Trade button clicked via Fire()")
+else
+    print("No MouseButton1Click connection found for Trade button")
+end
