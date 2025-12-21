@@ -75,14 +75,16 @@ else
     warn("No MouseButton1Click connection found for unit_more button")
 end
 
--- === Step 6: Select unit and Add ===
-local targetUnit = "unit_rafflesia"
+-- === Step 6: Add units sequentially (Add list) ===
+local addUnits = {"unit_rafflesia", "unit_christmas_bell"} -- ยูนิตที่จะ Add
+local receiveUnits = {"unit_rafflesia"} -- ยูนิตที่จะตรวจสอบใน Receive
 
 local function selectUnitAndAdd(unitName)
     local unitScrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
     local unit = unitScrolling:WaitForChild(unitName)
     local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
 
+    -- Scroll ให้เห็น
     pcall(function()
         unitScrolling.CanvasPosition = Vector2.new(
             0,
@@ -100,6 +102,7 @@ local function selectUnitAndAdd(unitName)
 
     task.wait(0.1)
 
+    -- Click unit
     pcall(function()
         local conns = getconnections(button.MouseButton1Click)
         if conns and #conns > 0 then
@@ -110,6 +113,7 @@ local function selectUnitAndAdd(unitName)
 
     task.wait(0.1)
 
+    -- Click Add
     local amountAdd = trade:WaitForChild("AmountAdd"):WaitForChild("Frame"):WaitForChild("Frame")
     local addButton = amountAdd.Actions.Items:WaitForChild("Add")
     pcall(function()
@@ -119,29 +123,33 @@ local function selectUnitAndAdd(unitName)
             print("Clicked Add button for unit:", unitName)
         end
     end)
+
+    task.wait(0.2)
 end
 
-selectUnitAndAdd(targetUnit)
+-- วน Add ทีละตัวตาม addUnits
+for _, unitName in ipairs(addUnits) do
+    selectUnitAndAdd(unitName)
+end
 
--- === Step 7: Accept2 - Wait for unit in Receive and click Accept ===
+-- === Step 7: ตรวจสอบ Receive list แล้ว Accept ===
 local scrollingFrameReceive = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
-local acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
+local acceptButton = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
 
-local function waitForUnitAndAccept(unitName)
+for _, unitName in ipairs(receiveUnits) do
     local unitFrame
     repeat
         unitFrame = scrollingFrameReceive:FindFirstChild(unitName)
         wait(0.1)
     until unitFrame
-
     print("Found target unit in Receive:", unitName)
-    local connections = getconnections(acceptButton2.MouseButton1Click)
-    if connections and #connections > 0 then
-        connections[1]:Fire()
-        print("Accept2 button clicked via Fire()")
-    else
-        warn("No MouseButton1Click connection found for Accept2 button")
-    end
 end
 
-waitForUnitAndAccept(targetUnit)
+-- กด Accept หลังตรวจสอบครบ
+local connections = getconnections(acceptButton.MouseButton1Click)
+if connections and #connections > 0 then
+    connections[1]:Fire()
+    print("Accept button clicked for Receive units")
+else
+    warn("No MouseButton1Click connection found for Accept button")
+end
