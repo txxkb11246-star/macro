@@ -4,8 +4,11 @@ local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 local screen = gui:WaitForChild("Screen")
 local middle = screen:WaitForChild("Middle")
+local sidebar = screen:WaitForChild("Left"):WaitForChild("Sidebar")
 
 -- === VARIABLES ===
+local addUnits = {"unit_rafflesia", "unit_christmas_bell"} -- ยูนิตที่เราจะเพิ่ม
+local repeatCounts = {unit_rafflesia = 3, unit_christmas_bell = 4} -- รอบแต่ละยูนิต
 local targetUsername = "skies1R"
 
 -- === STATUS UI ===
@@ -41,30 +44,109 @@ local function updateStatus(text, color)
     statusLabel.TextColor3 = color or Color3.fromRGB(255,255,255)
 end
 
--- === WAIT TRADE ===
+-- === FIRE TRADE BUTTON ===
+local tradeButton = sidebar.Items.Trade.Items.Button
+local function fireTradeButton()
+    local connections = getconnections(tradeButton.MouseButton1Click)
+    if connections and #connections > 0 then
+        connections[1]:Fire()
+        updateStatus("เริ่มเทรด...", Color3.fromRGB(0,255,0))
+    end
+end
+
+-- === WAIT FOR USER AND CLICK ===
+local function waitForUserAndClick(username)
+    local tradePartnerFrame = middle:WaitForChild("TradePartner"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("ScrollingFrame")
+    local targetItem
+    local timeout = 5
+    local startTime = tick()
+    repeat
+        targetItem = tradePartnerFrame:FindFirstChild(username)
+        task.wait(0.1)
+    until targetItem or tick() - startTime > timeout
+    if targetItem then
+        local button = targetItem:FindFirstChild("Button")
+        if button then
+            local connections = getconnections(button.MouseButton1Click)
+            if connections and #connections > 0 then
+                connections[1]:Fire()
+                updateStatus("พบผู้เล่นและกดเลือก: "..username, Color3.fromRGB(0,200,255))
+            end
+        end
+    end
+end
+
+-- === START TRADE LOOP ===
 local trade
 repeat
+    fireTradeButton()
+    waitForUserAndClick(targetUsername)
     trade = middle:FindFirstChild("Trade")
-    task.wait(0.2)
+    task.wait(5)
 until trade
 
-updateStatus("เริ่มเทรดกับ "..targetUsername, Color3.fromRGB(0,255,0))
+-- === ACCEPT STEP 1 ===
+local acceptButton1 = trade.Terms.Items.Buttons.Items.Accept
+task.wait(6)
+local connections1 = getconnections(acceptButton1.MouseButton1Click)
+if connections1 and #connections1 > 0 then
+    connections1[1]:Fire()
+    updateStatus("กด Accept ขั้นแรก", Color3.fromRGB(255,255,0))
+end
 
--- === PATH ฝั่ง Receive ===
+-- === ADD UNITS ===
+local function selectUnitAndAdd(unitName, repeatCount)
+    updateStatus("เลือกและเพิ่มยูนิต: "..unitName, Color3.fromRGB(255,128,0))
+    local unitScrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
+    local unit
+    for _, child in ipairs(unitScrolling:GetChildren()) do
+        if child:IsA("Frame") and child.Name:lower():find(unitName:lower()) then
+            unit = child
+            break
+        end
+    end
+    if not unit then return end
+    local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
+    task.wait(0.1)
+    for i = 1, repeatCount do
+        pcall(function()
+            local conns = getconnections(button.MouseButton1Click)
+            if conns and #conns > 0 then
+                conns[1]:Fire()
+            end
+        end)
+        task.wait(0.1)
+        local amountAdd = trade:WaitForChild("AmountAdd"):WaitForChild("Frame"):WaitForChild("Frame")
+        local addButton = amountAdd.Actions.Items:WaitForChild("Add")
+        pcall(function()
+            local conns = getconnections(addButton.MouseButton1Click)
+            if conns and #conns > 0 then
+                conns[1]:Fire()
+            end
+        end)
+        task.wait(0.3)
+    end
+end
+
+for _, unitName in ipairs(addUnits) do
+    local repeatCount = repeatCounts[unitName] or 1
+    selectUnitAndAdd(unitName, repeatCount)
+end
+
+-- === ACCEPT STEP 2 (REAL-TIME) ===
 local receiveFrame = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
-local acceptButton = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
+local acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
 
--- === FUNCTION FIRE ACCEPT2 ===
 local function fireAccept2()
-    local connections = getconnections(acceptButton.MouseButton1Click)
+    local connections = getconnections(acceptButton2.MouseButton1Click)
     if connections and #connections > 0 then
         connections[1]:Fire()
         updateStatus("กด Accept2 ใหม่ (ฝั่งตรงข้ามเพิ่มตัวละคร)", Color3.fromRGB(0,200,0))
     end
 end
 
--- === TRACK ยูนิตฝั่ง Receive แบบเรียลไทม์ ===
 local lastUnits = {}
+local acceptCooldown = false
 
 while trade and trade.Parent do
     local currentUnits = {}
@@ -74,13 +156,16 @@ while trade and trade.Parent do
         end
     end
 
-    -- ถ้าเจอยูนิตใหม่ Fire Accept2
-    if #currentUnits ~= #lastUnits then
+    if not acceptCooldown and #currentUnits ~= #lastUnits then
         lastUnits = currentUnits
+        acceptCooldown = true
         fireAccept2()
+        task.delay(0.8, function()
+            acceptCooldown = false
+        end)
     end
 
-    task.wait(0.2) -- polling ทุก 0.2 วินาที
+    task.wait(0.2)
 end
 
 updateStatus("เทรดเสร็จเรียบร้อย", Color3.fromRGB(255,0,255))
