@@ -1,73 +1,48 @@
--- === FORCE REAL CLICK สำหรับ Slider + Add ===
-
 local Players = game:GetService("Players")
-local GuiService = game:GetService("GuiService")
-local VIM = game:GetService("VirtualInputManager")
-
 local player = Players.LocalPlayer
 local gui = player.PlayerGui.GameGui.Screen.Middle.Trade
 
--- เข้าถึง Slider และปุ่ม Add
+-- Slider และ Add Button
 local slider = gui.AmountAdd.Frame.Frame.Items.Items.Picker.SliderContainer.DragCircle
 local addButton = gui.AmountAdd.Frame.Frame.Actions.Items.Add
 
--- ฟังก์ชันลาก Slider แบบ Force Real Click
-local function dragSlider(slider)
-    slider:GetPropertyChangedSignal("AbsolutePosition"):Wait()
-    slider:GetPropertyChangedSignal("AbsoluteSize"):Wait()
-
-    local pos = slider.AbsolutePosition
-    local size = slider.AbsoluteSize
-    local startX = pos.X + 1
-    local endX = pos.X + size.X - 1
-    local y = pos.Y + size.Y / 2
-
-    -- กดลงที่ Slider
-    VIM:SendMouseButtonEvent(startX, y, 0, true, game, 1)
-    -- ลากไปขวาสุดแบบ step
-    for i = 0, 1, 0.05 do
-        local x = startX + (endX - startX) * i
-        VIM:SendMouseMoveEvent(x, y, game)
-        task.wait(0.01)
+-- ฟังก์ชัน Fire Event ของปุ่ม
+local function fireButton(button)
+    local connections = getconnections(button.MouseButton1Click)
+    if connections[1] then
+        connections[1]:Fire()
+        print("Add Button fired!")
+    else
+        warn("No connections found on Add Button")
     end
-    -- ปล่อย
-    VIM:SendMouseButtonEvent(endX, y, 0, false, game, 1)
 end
 
--- ฟังก์ชัน Force Real Click ปุ่ม
-local function forceClick(button)
-    button:GetPropertyChangedSignal("AbsolutePosition"):Wait()
-    button:GetPropertyChangedSignal("AbsoluteSize"):Wait()
+-- ฟังก์ชัน Fire Slider Value update
+local function fireSlider(slider)
+    -- ตรวจสอบ Slider.Changed
+    local cons = getconnections(slider.Changed)
+    if #cons > 0 then
+        for i, con in ipairs(cons) do
+            con:Fire() -- Fire ทุกฟังก์ชันที่เชื่อมกับ Slider
+        end
+        print("Slider fired!")
+    else
+        warn("No connections found on Slider.Changed")
+    end
 
-    -- บังคับ GUI พร้อมรับ Input
-    button.Visible = true
-    button.Active = true
-    button.ZIndex = 1000
-
-    local pos = button.AbsolutePosition + (button.AbsoluteSize / 2)
-
-    -- โฟกัส GUI
-    GuiService.SelectedObject = button
-    task.wait(0.05)
-
-    -- ขยับเมาส์ + คลิกจริง
-    VIM:SendMouseMoveEvent(pos.X, pos.Y, game)
-    task.wait(0.03)
-    VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, true, game, 1)
-    task.wait(0.06)
-    VIM:SendMouseButtonEvent(pos.X, pos.Y, 0, false, game, 1)
-
-    -- เผื่อเกมฟังคีย์ยืนยัน
-    task.wait(0.05)
-    VIM:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
-    task.wait(0.05)
-    VIM:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+    -- บางเกมอาจเชื่อมกับ InputBegan / MouseButton1Down
+    local inputCons = getconnections(slider.MouseButton1Down)
+    if #inputCons > 0 then
+        for i, con in ipairs(inputCons) do
+            con:Fire()
+        end
+        print("Slider MouseButton1Down fired!")
+    end
 end
 
 -- === ทำงาน ===
--- 1) ลาก Slider ไปขวาสุด
-dragSlider(slider)
-task.wait(0.1) -- รอให้ Slider update
+-- 1) Fire Slider ก่อนให้ Value update
+fireSlider(slider)
 
--- 2) กดปุ่ม Add แบบ Force Real Click
-forceClick(addButton)
+-- 2) Fire Add Button
+fireButton(addButton)
