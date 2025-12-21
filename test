@@ -17,7 +17,7 @@ else
 end
 
 -- === Step 2: Select target username ===
-local targetUsername = "skies1R" -- เปลี่ยนตามต้องการ
+local targetUsername = "skies1R"
 local tradePartnerFrame = middle:WaitForChild("TradePartner"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("ScrollingFrame")
 
 local function waitForUserAndClick(username)
@@ -45,38 +45,27 @@ end
 
 waitForUserAndClick(targetUsername)
 
--- === Step 3: Wait for Trade GUI and check target unit before Accept ===
+-- === Step 3: Wait for Trade GUI ===
 local trade
 repeat
     trade = middle:FindFirstChild("Trade")
     wait(0.1)
 until trade
 
-local scrollingFrameReceive = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
-local acceptButton = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
-local targetUnit = "unit_rafflesia" -- เปลี่ยนตาม unit ที่ต้องการ
+-- === Step 4: Accept1 - Wait 8 seconds then click Accept ===
+local acceptButton1 = trade.Terms.Items.Buttons.Items.Accept
+print("Trade GUI found, waiting 8 seconds before clicking Accept1...")
+task.wait(8)
 
-local function checkUnitAndAccept()
-    local unitFrame = scrollingFrameReceive:FindFirstChild(targetUnit)
-    if unitFrame then
-        print("Found target unit:", targetUnit)
-        local connections = getconnections(acceptButton.MouseButton1Click)
-        if connections and #connections > 0 then
-            connections[1]:Fire()
-            print("Accept button clicked via Fire()")
-        else
-            warn("No MouseButton1Click connection found for Accept button")
-        end
-    else
-        warn("Target unit not found yet:", targetUnit)
-    end
+local acceptConnections1 = getconnections(acceptButton1.MouseButton1Click)
+if acceptConnections1 and #acceptConnections1 > 0 then
+    acceptConnections1[1]:Fire()
+    print("Accept1 button clicked via Fire()")
+else
+    warn("No MouseButton1Click connection found for Accept1 button")
 end
 
--- รอ 8 วินาทีหลัง Trade GUI ขึ้นก่อนตรวจ unit และ Accept
-task.wait(8)
-checkUnitAndAccept()
-
--- === Step 4: Click unit_more button ===
+-- === Step 5: Click unit_more button ===
 local unitMoreButton = trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextButton
 local unitMoreConnections = getconnections(unitMoreButton.MouseButton1Click)
 if unitMoreConnections and #unitMoreConnections > 0 then
@@ -86,13 +75,14 @@ else
     warn("No MouseButton1Click connection found for unit_more button")
 end
 
--- === Step 5: Select unit and Add ===
+-- === Step 6: Select unit and Add ===
+local targetUnit = "unit_rafflesia"
+
 local function selectUnitAndAdd(unitName)
     local unitScrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
     local unit = unitScrolling:WaitForChild(unitName)
     local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
 
-    -- Scroll unit into view
     pcall(function()
         unitScrolling.CanvasPosition = Vector2.new(
             0,
@@ -110,7 +100,6 @@ local function selectUnitAndAdd(unitName)
 
     task.wait(0.1)
 
-    -- Click unit
     pcall(function()
         local conns = getconnections(button.MouseButton1Click)
         if conns and #conns > 0 then
@@ -121,7 +110,6 @@ local function selectUnitAndAdd(unitName)
 
     task.wait(0.1)
 
-    -- Click Add button
     local amountAdd = trade:WaitForChild("AmountAdd"):WaitForChild("Frame"):WaitForChild("Frame")
     local addButton = amountAdd.Actions.Items:WaitForChild("Add")
     pcall(function()
@@ -133,5 +121,26 @@ local function selectUnitAndAdd(unitName)
     end)
 end
 
--- === Usage ===
 selectUnitAndAdd(targetUnit)
+
+-- === Step 7: Accept2 - Check unit in Receive and Accept ===
+local scrollingFrameReceive = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
+local acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
+
+local function checkUnitAndAccept2(unitName)
+    local unitFrame = scrollingFrameReceive:FindFirstChild(unitName)
+    if unitFrame then
+        print("Found target unit in Receive:", unitName)
+        local connections = getconnections(acceptButton2.MouseButton1Click)
+        if connections and #connections > 0 then
+            connections[1]:Fire()
+            print("Accept2 button clicked via Fire()")
+        else
+            warn("No MouseButton1Click connection found for Accept2 button")
+        end
+    else
+        warn("Target unit not found yet in Receive:", unitName)
+    end
+end
+
+checkUnitAndAccept2(targetUnit)
