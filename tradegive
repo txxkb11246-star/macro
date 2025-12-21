@@ -1,0 +1,147 @@
+-- === SERVICES ===
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
+local screen = gui:WaitForChild("Screen")
+local middle = screen:WaitForChild("Middle")
+local sidebar = screen:WaitForChild("Left"):WaitForChild("Sidebar")
+
+-- === Step 1: Click Trade button ===
+local tradeButton = sidebar.Items.Trade.Items.Button
+local tradeConnections = getconnections(tradeButton.MouseButton1Click)
+if tradeConnections and #tradeConnections > 0 then
+    tradeConnections[1]:Fire()
+    print("Trade button clicked via Fire()")
+else
+    warn("No MouseButton1Click connection found for Trade button")
+end
+
+-- === Step 2: Select target username ===
+local targetUsername = "skies1R"
+local tradePartnerFrame = middle:WaitForChild("TradePartner"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("ScrollingFrame")
+
+local function waitForUserAndClick(username)
+    local targetItem
+    local timeout = 5
+    local startTime = tick()
+    repeat
+        targetItem = tradePartnerFrame:FindFirstChild(username)
+        wait(0.1)
+    until targetItem or tick() - startTime > timeout
+
+    if targetItem then
+        local button = targetItem:FindFirstChild("Button")
+        if button then
+            local userConnections = getconnections(button.MouseButton1Click)
+            if userConnections and #userConnections > 0 then
+                userConnections[1]:Fire()
+                print("Clicked user:", username)
+            end
+        end
+    else
+        warn("User not found:", username)
+    end
+end
+
+waitForUserAndClick(targetUsername)
+
+-- === Step 3: Wait for Trade GUI ===
+local trade
+repeat
+    trade = middle:FindFirstChild("Trade")
+    wait(0.1)
+until trade
+
+-- === Step 4: Accept1 - Wait 8 seconds then click Accept ===
+local acceptButton1 = trade.Terms.Items.Buttons.Items.Accept
+print("Trade GUI found, waiting 8 seconds before clicking Accept1...")
+task.wait(8)
+
+local acceptConnections1 = getconnections(acceptButton1.MouseButton1Click)
+if acceptConnections1 and #acceptConnections1 > 0 then
+    acceptConnections1[1]:Fire()
+    print("Accept1 button clicked via Fire()")
+else
+    warn("No MouseButton1Click connection found for Accept1 button")
+end
+
+-- === Step 5: Click unit_more button ===
+local unitMoreButton = trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextButton
+local unitMoreConnections = getconnections(unitMoreButton.MouseButton1Click)
+if unitMoreConnections and #unitMoreConnections > 0 then
+    unitMoreConnections[1]:Fire()
+    print("Clicked unit_more button")
+else
+    warn("No MouseButton1Click connection found for unit_more button")
+end
+
+-- === Step 6: Select unit and Add ===
+local targetUnit = "unit_rafflesia"
+
+local function selectUnitAndAdd(unitName)
+    local unitScrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
+    local unit = unitScrolling:WaitForChild(unitName)
+    local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
+
+    pcall(function()
+        unitScrolling.CanvasPosition = Vector2.new(
+            0,
+            math.max(0, unit.AbsolutePosition.Y - unitScrolling.AbsolutePosition.Y - 50)
+        )
+    end)
+
+    unit.Visible = true
+    unit.Active = true
+    if button then
+        button.Visible = true
+        button.Active = true
+        button.ZIndex = 1000
+    end
+
+    task.wait(0.1)
+
+    pcall(function()
+        local conns = getconnections(button.MouseButton1Click)
+        if conns and #conns > 0 then
+            conns[1]:Fire()
+            print("Clicked unit:", unitName)
+        end
+    end)
+
+    task.wait(0.1)
+
+    local amountAdd = trade:WaitForChild("AmountAdd"):WaitForChild("Frame"):WaitForChild("Frame")
+    local addButton = amountAdd.Actions.Items:WaitForChild("Add")
+    pcall(function()
+        local conns = getconnections(addButton.MouseButton1Click)
+        if conns and #conns > 0 then
+            conns[1]:Fire()
+            print("Clicked Add button for unit:", unitName)
+        end
+    end)
+end
+
+selectUnitAndAdd(targetUnit)
+
+-- === Step 7: Accept2 - Wait for unit in Receive and click Accept ===
+local scrollingFrameReceive = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
+local acceptButton2 = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
+
+local function waitForUnitAndAccept(unitName)
+    local unitFrame
+    repeat
+        unitFrame = scrollingFrameReceive:FindFirstChild(unitName)
+        wait(0.1)
+    until unitFrame
+
+    print("Found target unit in Receive:", unitName)
+    local connections = getconnections(acceptButton2.MouseButton1Click)
+    if connections and #connections > 0 then
+        connections[1]:Fire()
+        print("Accept2 button clicked via Fire()")
+    else
+        warn("No MouseButton1Click connection found for Accept2 button")
+    end
+end
+
+waitForUnitAndAccept(targetUnit)
