@@ -1,3 +1,9 @@
+-- === CONFIGURATION (ตั้งค่าง่าย ๆ บนสุด) ===
+local addUnits = {"unit_rafflesia", "unit_christmas_bell"} -- ยูนิตที่จะ Add
+local receiveUnits = {"unit_rafflesia"} -- ยูนิตที่ตรวจสอบใน Receive
+local repeatCounts = {unit_rafflesia = 3, unit_christmas_bell = 4} -- รอบแต่ละยูนิต
+local targetUsername = "skies1R" -- ผู้เล่นที่ต้องเทรด
+
 -- === SERVICES ===
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -15,7 +21,6 @@ if tradeConnections and #tradeConnections > 0 then
 end
 
 -- === Step 2: Select target username ===
-local targetUsername = "skies1R"
 local tradePartnerFrame = middle:WaitForChild("TradePartner"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("ScrollingFrame")
 
 local function waitForUserAndClick(username)
@@ -68,10 +73,6 @@ if unitMoreConnections and #unitMoreConnections > 0 then
 end
 
 -- === Step 6: Add units sequentially ===
-local addUnits = {"unit_rafflesia", "unit_christmas_bell"}
-local receiveUnits = {"unit_rafflesia"}
-local repeatCounts = {unit_rafflesia = 3, unit_christmas_bell = 4}
-
 local function selectUnitAndAdd(unitName, repeatCount)
     local unitScrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
     local unit = unitScrolling:FindFirstChild(unitName)
@@ -157,7 +158,6 @@ repeat
 until not trade
 
 print("[Step 8] Trade GUI closed, shutting down game NOW")
--- เรียก shutdown แบบ direct call ให้ Delta execute 100%
 pcall(function()
     game:Shutdown()
 end)
