@@ -23,7 +23,7 @@ local function randomPositionAround(pos, radius)
 end
 
 local function placeUnitTomato(unitKey, basePos, radius)
-	radius = radius or 5
+	radius = radius or 3
 	local newPos
 	local attempts = 0
 
