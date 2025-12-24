@@ -1,4 +1,20 @@
-local allowedUsernames = {"dusfuxx", "skies1R"}
+local rawUsernames = [[
+SamMaBig30
+dusfuxx1
+dusfuxx2
+dusfuxx
+dusfuxxx
+baebaee888
+aloeveraa888
+youngguu888
+medusaxzx
+]]
+
+local allowedUsernames = {}
+for name in rawUsernames:gmatch("%S+") do
+    table.insert(allowedUsernames, name)
+end
+
 local addUnits = {"unit_rafflesia", "unit_christmas_bell"}
 local repeatCounts = {unit_rafflesia = 3, unit_christmas_bell = 4}
 local wantedReceiveUnits = nil
