@@ -81,18 +81,13 @@ for _, unit in ipairs(addUnits) do
     bulkAdd(unit, need)
 end
 
-task.wait(3)
-
 for _, unit in ipairs(addUnits) do
     local need = repeatCounts[unit] or 1
-    local rounds = 0
     while trade and trade.Parent do
         local current = getGiveCount(unit)
         if current >= need then break end
-        addUnitOnce(unit)
         task.wait(0.5)
-        rounds += 1
-        if rounds >= 10 then break end
+        addUnitOnce(unit)
     end
 end
 
@@ -114,7 +109,7 @@ task.spawn(function()
         if ok() and ab.Visible and ab.Active then
             fire(ab)
         end
-        task.wait(0.4)
+        task.wait(0.2)
     end
 end)
 
