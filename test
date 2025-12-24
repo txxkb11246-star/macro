@@ -5,6 +5,11 @@ local repeatCounts = {
     unit_christmas_bell = 4
 }
 
+local wantedReceiveUnits = {
+    "unit_rafflesia",
+    "unit_christmas_bell"
+}
+
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
@@ -64,7 +69,7 @@ local function handleTrade(trade)
         selectUnitAndAdd(trade, unitName, repeatCounts[unitName] or 1)
     end
 
-    -- ===== Accept 2 (Retry Mode) =====
+    -- ===== Accept 2 (Retry + Filter) =====
     spawn(function()
         local receiveFrame =
             player.PlayerGui.GameGui.Screen.Middle.Trade
@@ -78,15 +83,28 @@ local function handleTrade(trade)
         local pendingAccept = false
         local lastCheckTime = 0
 
+        local wantedMap = {}
+        if wantedReceiveUnits and #wantedReceiveUnits > 0 then
+            for _, name in ipairs(wantedReceiveUnits) do
+                wantedMap[name] = true
+            end
+        end
+
         local function getSnapshot()
             local snap, count = {}, 0
+            local hasWanted = false
+
             for _, unit in ipairs(receiveFrame:GetChildren()) do
                 if unit:IsA("Frame") then
                     snap[unit.Name] = true
                     count += 1
+                    if wantedMap[unit.Name] then
+                        hasWanted = true
+                    end
                 end
             end
-            return snap, count
+
+            return snap, count, hasWanted
         end
 
         local function snapshotChanged(newSnap)
@@ -100,7 +118,7 @@ local function handleTrade(trade)
         end
 
         while trade and trade.Parent do
-            local snap, unitCount = getSnapshot()
+            local snap, unitCount, hasWantedUnit = getSnapshot()
 
             if unitCount > 0 and snapshotChanged(snap) then
                 lastSnapshot = snap
@@ -108,7 +126,11 @@ local function handleTrade(trade)
             end
 
             if pendingAccept and unitCount > 0 then
-                if tick() - lastCheckTime >= 3 then
+                local allowAccept =
+                    (not wantedReceiveUnits or #wantedReceiveUnits == 0)
+                    or hasWantedUnit
+
+                if allowAccept and tick() - lastCheckTime >= 3 then
                     lastCheckTime = tick()
                     if acceptButton and acceptButton.Visible then
                         local c = getconnections(acceptButton.MouseButton1Click)
