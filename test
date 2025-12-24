@@ -78,17 +78,21 @@ end
 
 for _, unit in ipairs(addUnits) do
     local need = repeatCounts[unit] or 1
+    bulkAdd(unit, need)
+end
+
+task.wait(3)
+
+for _, unit in ipairs(addUnits) do
+    local need = repeatCounts[unit] or 1
     local rounds = 0
     while trade and trade.Parent do
-        bulkAdd(unit, need)
-        task.wait(1)
-        if getGiveCount(unit) >= need then
-            break
-        end
+        local current = getGiveCount(unit)
+        if current >= need then break end
+        addUnitOnce(unit)
+        task.wait(0.5)
         rounds += 1
-        if rounds >= 5 then
-            break
-        end
+        if rounds >= 10 then break end
     end
 end
 
