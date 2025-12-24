@@ -7,7 +7,7 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 local screen = gui:WaitForChild("Screen")
-local sidebar = screen:WaitForChild("Left"):WaitForChild("Sidebar")
+local sidebar = screen.Left.Sidebar
 local tradeButton = sidebar.Items.Trade.Items.Button
 
 local function fireTradeButton()
@@ -36,18 +36,20 @@ repeat
     task.wait(1)
 until trade
 
+local terms = trade:WaitForChild("Terms")
+local acceptBtn = terms.Items.Buttons.Items.Accept
+
 task.spawn(function()
-    local terms = trade.Terms
-    local btn = terms.Items.Buttons.Items.Accept
     while trade and trade.Parent and terms.Visible do
-        local conns = getconnections(btn.MouseButton1Click)
+        local conns = getconnections(acceptBtn.MouseButton1Click)
         if conns and #conns > 0 then conns[1]:Fire() end
         task.wait(0.3)
     end
 end)
 
-local terms = trade.Terms
-while terms.Visible do task.wait(0.2) end
+while terms.Visible do
+    task.wait(0.2)
+end
 
 do
     local btn = trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextButton
@@ -87,7 +89,6 @@ end
 task.spawn(function()
     local receiveFrame = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
     local acceptBtn = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
-
     local function hasWantedUnit()
         local foundAny = false
         for _, item in ipairs(receiveFrame:GetChildren()) do
@@ -101,7 +102,6 @@ task.spawn(function()
         end
         return false
     end
-
     while trade and trade.Parent do
         if hasWantedUnit() and acceptBtn.Visible and acceptBtn.Active then
             local conns = getconnections(acceptBtn.MouseButton1Click)
