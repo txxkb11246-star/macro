@@ -83,11 +83,20 @@ end
 
 for _, unit in ipairs(addUnits) do
     local need = repeatCounts[unit] or 1
+    local lastCount = getGiveCount(unit)
+    local rounds = 0
     while trade and trade.Parent do
         local current = getGiveCount(unit)
         if current >= need then break end
-        task.wait(0.5)
+        if current > lastCount then
+            lastCount = current
+        else
+            task.wait(0.5)
+        end
         addUnitOnce(unit)
+        lastCount = current
+        rounds += 1
+        if rounds >= 20 then break end
     end
 end
 
