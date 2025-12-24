@@ -11,14 +11,16 @@ local middle = screen:WaitForChild("Middle")
 local sidebar = screen:WaitForChild("Left"):WaitForChild("Sidebar")
 
 local tradeButton = sidebar.Items.Trade.Items.Button
-local tradeConnections = getconnections(tradeButton.MouseButton1Click)
-if tradeConnections and #tradeConnections > 0 then
-    tradeConnections[1]:Fire()
+
+local function fireTradeButton()
+    local tradeConnections = getconnections(tradeButton.MouseButton1Click)
+    if tradeConnections and #tradeConnections > 0 then
+        tradeConnections[1]:Fire()
+    end
 end
 
-local tradePartnerFrame = middle:WaitForChild("TradePartner"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("ScrollingFrame")
-
 local function waitForUserAndClick(username)
+    local tradePartnerFrame = middle:WaitForChild("TradePartner"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("Items"):WaitForChild("ScrollingFrame")
     local targetItem
     local timeout = 5
     local startTime = tick()
@@ -26,7 +28,6 @@ local function waitForUserAndClick(username)
         targetItem = tradePartnerFrame:FindFirstChild(username)
         wait(0.1)
     until targetItem or tick() - startTime > timeout
-
     if targetItem then
         local button = targetItem:FindFirstChild("Button")
         if button then
@@ -38,12 +39,12 @@ local function waitForUserAndClick(username)
     end
 end
 
-waitForUserAndClick(targetUsername)
-
 local trade
 repeat
+    fireTradeButton()
+    waitForUserAndClick(targetUsername)
     trade = middle:FindFirstChild("Trade")
-    wait(0.1)
+    wait(5)
 until trade
 
 local acceptButton1 = trade.Terms.Items.Buttons.Items.Accept
@@ -70,10 +71,7 @@ local function selectUnitAndAdd(unitName, repeatCount)
             end
         end
     end
-    if not unit then
-        return
-    end
-
+    if not unit then return end
     local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
     pcall(function()
         unitScrolling.CanvasPosition = Vector2.new(0, math.max(0, unit.AbsolutePosition.Y - unitScrolling.AbsolutePosition.Y - 50))
@@ -85,9 +83,7 @@ local function selectUnitAndAdd(unitName, repeatCount)
         button.Active = true
         button.ZIndex = 1000
     end
-
     task.wait(0.1)
-
     for i = 1, repeatCount do
         pcall(function()
             local conns = getconnections(button.MouseButton1Click)
