@@ -1,12 +1,8 @@
--- ===== CONFIG =====
-local allowedUsernames = {
-    "dusfuxx",
-    "skies1R"
-}
+local allowedUsernames = {"dusfuxx", "skies1R"}
+local addUnits = {"unit_rafflesia", "unit_christmas_bell"}
+local repeatCounts = {unit_rafflesia = 3, unit_christmas_bell = 4}
+local wantedReceiveUnits = nil
 
-local receiveUnits = {"unit_rafflesia"} -- {} = รับอะไรก็ได้
-
--- ===== SERVICES =====
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
@@ -14,93 +10,171 @@ local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 local screen = gui:WaitForChild("Screen")
 local middle = screen:WaitForChild("Middle")
 
--- ===== UTILS =====
 local function isAllowed(username)
     for _, name in ipairs(allowedUsernames) do
-        if name == username then
-            return true
-        end
+        if name == username then return true end
     end
     return false
 end
 
 local function acceptInvite(username)
-    local plr = Players:FindFirstChild(username)
-    if plr then
+    local targetPlayer = Players:FindFirstChild(username)
+    if targetPlayer then
         pcall(function()
-            ReplicatedStorage
-                :WaitForChild("RemoteFunctions")
-                :WaitForChild("TradeAcceptInvite")
-                :InvokeServer(plr)
+            ReplicatedStorage.RemoteFunctions.TradeAcceptInvite:InvokeServer(targetPlayer)
         end)
     end
 end
 
--- ===== AUTO ACCEPT INVITE =====
-spawn(function()
-    while true do
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if isAllowed(plr.Name) then
-                acceptInvite(plr.Name)
-            end
-        end
-        task.wait(1)
-    end
-end)
+local function selectUnitAndAdd(trade, unitName, repeatCount)
+    local unitScrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
+    local unit = unitScrolling:FindFirstChild(unitName)
+    if not unit then return end
 
--- ===== WAIT TRADE GUI =====
-local trade
-repeat
-    trade = middle:FindFirstChild("Trade")
-    task.wait(0.3)
-until trade
+    local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
 
--- ===== ACCEPT 1 =====
-task.wait(5)
-do
-    local btn = trade.Terms.Items.Buttons.Items.Accept
-    local conns = getconnections(btn.MouseButton1Click)
-    if conns and #conns > 0 then
-        conns[1]:Fire()
+    for i = 1, repeatCount do
+        pcall(function()
+            local c = getconnections(button.MouseButton1Click)
+            if c and #c > 0 then c[1]:Fire() end
+        end)
+        task.wait(0.1)
+
+        local addButton = trade.AmountAdd.Frame.Frame.Actions.Items.Add
+        pcall(function()
+            local c = getconnections(addButton.MouseButton1Click)
+            if c and #c > 0 then c[1]:Fire() end
+        end)
+        task.wait(0.3)
     end
 end
 
--- ===== ACCEPT 2 (SAME LOGIC AS GIVE) =====
-spawn(function()
-    local receiveFrame = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
-    local acceptBtn = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
+local function handleTrade(trade)
+    local tradeCompleted = false
 
-    local function hasWantedUnit()
-        local foundAny = false
-        for _, item in ipairs(receiveFrame:GetChildren()) do
-            if item:IsA("Frame") then
-                foundAny = true
-                if #receiveUnits == 0 then
-                    return true
-                end
-                for _, want in ipairs(receiveUnits) do
-                    if item.Name == want then
-                        return true
+    spawn(function()
+        local terms = trade.Terms
+        local accept1 = terms.Items.Buttons.Items.Accept
+
+        while trade and trade.Parent and terms.Visible do
+            pcall(function()
+                local c = getconnections(accept1.MouseButton1Click)
+                if c and #c > 0 then c[1]:Fire() end
+            end)
+            task.wait(0.4)
+        end
+    end)
+
+    while trade and trade.Parent and trade.Terms.Visible do
+        task.wait(0.2)
+    end
+
+    for _, unitName in ipairs(addUnits) do
+        selectUnitAndAdd(trade, unitName, repeatCounts[unitName] or 1)
+    end
+
+    spawn(function()
+        local receiveFrame =
+            player.PlayerGui.GameGui.Screen.Middle.Trade
+            .Items.Container.Items.Right.Receive.Items.ScrollingFrame
+
+        local acceptButton =
+            player.PlayerGui.GameGui.Screen.Middle.Trade
+            .Items.Container.Items.Right.Controls.Items.Buttons.Accept
+
+        local lastSnapshot = {}
+        local pendingAccept = false
+        local lastCheckTime = 0
+
+        local wantedMap = {}
+        if wantedReceiveUnits and #wantedReceiveUnits > 0 then
+            for _, name in ipairs(wantedReceiveUnits) do
+                wantedMap[name] = true
+            end
+        end
+
+        local function getSnapshot()
+            local snap, count = {}, 0
+            local hasWanted = false
+
+            for _, unit in ipairs(receiveFrame:GetChildren()) do
+                if unit:IsA("Frame") then
+                    snap[unit.Name] = true
+                    count += 1
+                    if wantedMap[unit.Name] then
+                        hasWanted = true
                     end
                 end
             end
-        end
-        return false
-    end
 
-    while trade and trade.Parent do
-        if hasWantedUnit() and acceptBtn.Visible and acceptBtn.Active then
-            local conns = getconnections(acceptBtn.MouseButton1Click)
-            if conns and #conns > 0 then
-                conns[1]:Fire()
+            return snap, count, hasWanted
+        end
+
+        local function snapshotChanged(newSnap)
+            for k in pairs(newSnap) do
+                if not lastSnapshot[k] then return true end
+            end
+            for k in pairs(lastSnapshot) do
+                if not newSnap[k] then return true end
+            end
+            return false
+        end
+
+        while trade and trade.Parent do
+            local snap, unitCount, hasWantedUnit = getSnapshot()
+
+            if unitCount > 0 and snapshotChanged(snap) then
+                lastSnapshot = snap
+                pendingAccept = true
+            end
+
+            if pendingAccept and unitCount > 0 then
+                local allowAccept =
+                    (not wantedReceiveUnits or #wantedReceiveUnits == 0)
+                    or hasWantedUnit
+
+                if allowAccept and tick() - lastCheckTime >= 3 then
+                    lastCheckTime = tick()
+                    if acceptButton and acceptButton.Visible then
+                        local c = getconnections(acceptButton.MouseButton1Click)
+                        if c and #c > 0 then
+                            pcall(function()
+                                c[1]:Fire()
+                            end)
+                        end
+                    end
+                end
+            end
+
+            task.wait(0.3)
+        end
+
+        tradeCompleted = true
+    end)
+
+    while not tradeCompleted do
+        task.wait(0.5)
+    end
+end
+
+spawn(function()
+    local currentTrade = nil
+
+    while true do
+        for _, p in ipairs(Players:GetPlayers()) do
+            if isAllowed(p.Name) then
+                acceptInvite(p.Name)
             end
         end
-        task.wait(0.4)
+
+        local trade = middle:FindFirstChild("Trade")
+        if trade and trade ~= currentTrade then
+            currentTrade = trade
+            handleTrade(trade)
+        elseif not trade then
+            currentTrade = nil
+        end
+
+        task.wait(1)
     end
 end)
-
--- ===== WAIT END =====
-repeat
-    trade = middle:FindFirstChild("Trade")
-    task.wait(0.2)
-until not trade
