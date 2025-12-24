@@ -134,6 +134,6 @@ repeat
     wait(0.1)
 until not trade
 
-pcall(function()
+-pcall(function()
     game:Shutdown()
-end)
+end)-
