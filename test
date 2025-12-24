@@ -5,7 +5,7 @@ local repeatCounts = {
     unit_christmas_bell = 4
 }
 
-local wantedReceiveUnits = {"unit_rafflesia"}
+local wantedReceiveUnits = nill
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
