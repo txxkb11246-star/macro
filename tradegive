@@ -1,38 +1,28 @@
 local addUnits = {"unit_rafflesia", "unit_christmas_bell"}
 local receiveUnits = {"unit_rafflesia"}
-local repeatCounts = {
-    unit_rafflesia = 3,
-    unit_christmas_bell = 4
-}
+local repeatCounts = {unit_rafflesia = 3, unit_christmas_bell = 4}
 local targetUsername = "dusfuxx"
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 local screen = gui:WaitForChild("Screen")
-local middle = screen:WaitForChild("Middle")
 local sidebar = screen:WaitForChild("Left"):WaitForChild("Sidebar")
-
 local tradeButton = sidebar.Items.Trade.Items.Button
 
 local function fireTradeButton()
     local conns = getconnections(tradeButton.MouseButton1Click)
-    if conns and #conns > 0 then
-        conns[1]:Fire()
-    end
+    if conns and #conns > 0 then conns[1]:Fire() end
 end
 
 local function waitForUserAndClick(username)
-    local frame = middle.TradePartner.Items.Items.Items.Items.ScrollingFrame
+    local frame = screen.Middle.TradePartner.Items.Items.Items.Items.ScrollingFrame
     local start = tick()
     while tick() - start < 5 do
         local item = frame:FindFirstChild(username)
         if item and item:FindFirstChild("Button") then
             local conns = getconnections(item.Button.MouseButton1Click)
-            if conns and #conns > 0 then
-                conns[1]:Fire()
-                return
-            end
+            if conns and #conns > 0 then conns[1]:Fire() return end
         end
         task.wait(0.1)
     end
@@ -42,7 +32,7 @@ local trade
 repeat
     fireTradeButton()
     waitForUserAndClick(targetUsername)
-    trade = middle:FindFirstChild("Trade")
+    trade = screen.Middle:FindFirstChild("Trade")
     task.wait(1)
 until trade
 
@@ -51,21 +41,18 @@ task.spawn(function()
     local btn = terms.Items.Buttons.Items.Accept
     while trade and trade.Parent and terms.Visible do
         local conns = getconnections(btn.MouseButton1Click)
-        if conns and #conns > 0 then
-            conns[1]:Fire()
-        end
+        if conns and #conns > 0 then conns[1]:Fire() end
         task.wait(0.3)
     end
 end)
 
-task.wait(0.5)
+local terms = trade.Terms
+while terms.Visible do task.wait(0.2) end
 
 do
     local btn = trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextButton
     local conns = getconnections(btn.MouseButton1Click)
-    if conns and #conns > 0 then
-        conns[1]:Fire()
-    end
+    if conns and #conns > 0 then conns[1]:Fire() end
 end
 
 local function selectUnitAndAdd(unitName, count)
@@ -84,15 +71,11 @@ local function selectUnitAndAdd(unitName, count)
     inv.CanvasPosition = Vector2.new(0, math.max(0, unit.AbsolutePosition.Y - inv.AbsolutePosition.Y - 50))
     for i = 1, count do
         local conns = getconnections(button.MouseButton1Click)
-        if conns and #conns > 0 then
-            conns[1]:Fire()
-        end
+        if conns and #conns > 0 then conns[1]:Fire() end
         task.wait(0.1)
         local addBtn = trade.AmountAdd.Frame.Frame.Actions.Items.Add
         local addConns = getconnections(addBtn.MouseButton1Click)
-        if addConns and #addConns > 0 then
-            addConns[1]:Fire()
-        end
+        if addConns and #addConns > 0 then addConns[1]:Fire() end
         task.wait(0.3)
     end
 end
@@ -110,13 +93,9 @@ task.spawn(function()
         for _, item in ipairs(receiveFrame:GetChildren()) do
             if item:IsA("Frame") then
                 foundAny = true
-                if #receiveUnits == 0 then
-                    return true
-                end
+                if #receiveUnits == 0 then return true end
                 for _, want in ipairs(receiveUnits) do
-                    if item.Name == want then
-                        return true
-                    end
+                    if item.Name == want then return true end
                 end
             end
         end
@@ -126,19 +105,15 @@ task.spawn(function()
     while trade and trade.Parent do
         if hasWantedUnit() and acceptBtn.Visible and acceptBtn.Active then
             local conns = getconnections(acceptBtn.MouseButton1Click)
-            if conns and #conns > 0 then
-                conns[1]:Fire()
-            end
+            if conns and #conns > 0 then conns[1]:Fire() end
         end
         task.wait(0.4)
     end
 end)
 
 repeat
-    trade = middle:FindFirstChild("Trade")
+    trade = screen.Middle:FindFirstChild("Trade")
     task.wait(0.2)
 until not trade
 
-pcall(function()
-    game:Shutdown()
-end)
+pcall(function() game:Shutdown() end)
