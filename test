@@ -87,7 +87,6 @@ end
 task.spawn(function()
     local receiveFrame = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
     local acceptBtn = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
-
     local function hasWantedUnit()
         local foundAny = false
         for _, item in ipairs(receiveFrame:GetChildren()) do
@@ -101,7 +100,6 @@ task.spawn(function()
         end
         return false
     end
-
     while trade and trade.Parent do
         if hasWantedUnit() and acceptBtn.Visible and acceptBtn.Active then
             local conns = getconnections(acceptBtn.MouseButton1Click)
@@ -115,5 +113,3 @@ repeat
     trade = screen.Middle:FindFirstChild("Trade")
     task.wait(0.2)
 until not trade
-
-pcall(function() game:Shutdown() end)
