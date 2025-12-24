@@ -1,0 +1,18 @@
+local UNIT_NAME = "unit_gift_plant"
+local BUY_COUNT = 3
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local buyRemote = ReplicatedStorage
+    :WaitForChild("RemoteFunctions")
+    :WaitForChild("BuyUnitWithSeeds")
+
+local args = {
+    [1] = UNIT_NAME
+}
+
+for i = 1, BUY_COUNT do
+    buyRemote:InvokeServer(unpack(args))
+    task.wait(0.3)
+end
+
+game:Shutdown()
