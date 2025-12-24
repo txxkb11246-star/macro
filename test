@@ -36,16 +36,22 @@ repeat
 until middle:FindFirstChild("Trade")
 
 local trade = middle.Trade
+local terms = trade.Terms
 
 task.spawn(function()
-    local btn = trade.Terms.Items.Buttons.Items.Accept
-    while trade and trade.Parent and trade.Terms.Visible do
+    local btn = terms.Items.Buttons.Items.Accept
+    while trade and trade.Parent and terms.Visible do
         fire(btn)
         task.wait(0.3)
     end
 end)
 
-task.wait(0.5)
+repeat
+    task.wait(0.1)
+until not terms.Visible
+
+task.wait(0.3)
+
 fire(trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextButton)
 
 local function getGiveCount(unitName)
@@ -90,10 +96,8 @@ task.spawn(function()
     local rf = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
     local ab = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
     local function ok()
-        local found = false
         for _, i in ipairs(rf:GetChildren()) do
             if i:IsA("Frame") then
-                found = true
                 if #receiveUnits == 0 then return true end
                 for _, w in ipairs(receiveUnits) do
                     if i.Name == w then return true end
