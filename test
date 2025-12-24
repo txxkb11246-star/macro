@@ -51,8 +51,7 @@ fire(trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextBu
 local function getGiveCount(unitName)
     local f = trade.Items.Container.Items.Left.Give.Items.ScrollingFrame:FindFirstChild(unitName)
     if not f then return 0 end
-    local c = f.Frame.ImageLabel.Count
-    return tonumber(c.Text) or 0
+    return tonumber(f.Frame.ImageLabel.Count.Text) or 0
 end
 
 local function addUnitOnce(unitName)
@@ -64,11 +63,26 @@ local function addUnitOnce(unitName)
     fire(trade.AmountAdd.Frame.Frame.Actions.Items.Add)
 end
 
+local function bulkAdd(unitName, times)
+    for i = 1, times do
+        addUnitOnce(unitName)
+        task.wait(0.12)
+    end
+end
+
 for _, unit in ipairs(addUnits) do
     local need = repeatCounts[unit] or 1
-    while trade and trade.Parent and getGiveCount(unit) < need do
-        addUnitOnce(unit)
-        task.wait(0.25)
+    local rounds = 0
+    while trade and trade.Parent do
+        bulkAdd(unit, need)
+        task.wait(1)
+        if getGiveCount(unit) >= need then
+            break
+        end
+        rounds += 1
+        if rounds >= 5 then
+            break
+        end
     end
 end
 
