@@ -4,7 +4,7 @@ local repeatCounts = {
     unit_rafflesia = 3,
     unit_christmas_bell = 4
 }
-local targetUsername = "skies1R"
+local targetUsername = "dusfuxx"
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
