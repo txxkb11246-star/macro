@@ -1,57 +1,62 @@
 -- ===== CONFIG =====
-local addUnits = {"unit_rafflesia", "unit_christmas_bell"}
-local receiveUnits = {"unit_rafflesia"} -- ว่าง {} = รับอะไรก็ได้
-local repeatCounts = {
-    unit_rafflesia = 3,
-    unit_christmas_bell = 4
+local allowedUsernames = {
+    "dusfuxx",
+    "skies1R"
 }
-local targetUsername = "skies1R"
+
+local receiveUnits = {"unit_rafflesia"} -- {} = รับอะไรก็ได้
 
 -- ===== SERVICES =====
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 local screen = gui:WaitForChild("Screen")
 local middle = screen:WaitForChild("Middle")
-local sidebar = screen:WaitForChild("Left"):WaitForChild("Sidebar")
 
--- ===== OPEN TRADE =====
-local tradeButton = sidebar.Items.Trade.Items.Button
+-- ===== UTILS =====
+local function isAllowed(username)
+    for _, name in ipairs(allowedUsernames) do
+        if name == username then
+            return true
+        end
+    end
+    return false
+end
 
-local function fireTradeButton()
-    local conns = getconnections(tradeButton.MouseButton1Click)
-    if conns and #conns > 0 then
-        conns[1]:Fire()
+local function acceptInvite(username)
+    local plr = Players:FindFirstChild(username)
+    if plr then
+        pcall(function()
+            ReplicatedStorage
+                :WaitForChild("RemoteFunctions")
+                :WaitForChild("TradeAcceptInvite")
+                :InvokeServer(plr)
+        end)
     end
 end
 
-local function waitForUserAndClick(username)
-    local frame = middle.TradePartner.Items.Items.Items.Items.ScrollingFrame
-    local start = tick()
-    while tick() - start < 5 do
-        local item = frame:FindFirstChild(username)
-        if item and item:FindFirstChild("Button") then
-            local conns = getconnections(item.Button.MouseButton1Click)
-            if conns and #conns > 0 then
-                conns[1]:Fire()
-                return
+-- ===== AUTO ACCEPT INVITE =====
+spawn(function()
+    while true do
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if isAllowed(plr.Name) then
+                acceptInvite(plr.Name)
             end
         end
-        task.wait(0.1)
+        task.wait(1)
     end
-end
+end)
 
--- ===== WAIT TRADE =====
+-- ===== WAIT TRADE GUI =====
 local trade
 repeat
-    fireTradeButton()
-    waitForUserAndClick(targetUsername)
     trade = middle:FindFirstChild("Trade")
-    task.wait(5)
+    task.wait(0.3)
 until trade
 
 -- ===== ACCEPT 1 =====
-task.wait(6)
+task.wait(5)
 do
     local btn = trade.Terms.Items.Buttons.Items.Accept
     local conns = getconnections(btn.MouseButton1Click)
@@ -60,54 +65,7 @@ do
     end
 end
 
--- ===== OPEN ADD UNIT PANEL =====
-do
-    local btn = trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextButton
-    local conns = getconnections(btn.MouseButton1Click)
-    if conns and #conns > 0 then
-        conns[1]:Fire()
-    end
-end
-
--- ===== ADD UNITS =====
-local function selectUnitAndAdd(unitName, count)
-    local inv = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
-    local unit = inv:FindFirstChild(unitName)
-
-    if not unit then
-        for _, v in ipairs(inv:GetChildren()) do
-            if v:IsA("Frame") and v.Name:lower():find(unitName:lower()) then
-                unit = v
-                break
-            end
-        end
-    end
-    if not unit then return end
-
-    local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
-    inv.CanvasPosition = Vector2.new(0, math.max(0, unit.AbsolutePosition.Y - inv.AbsolutePosition.Y - 50))
-
-    for i = 1, count do
-        local conns = getconnections(button.MouseButton1Click)
-        if conns and #conns > 0 then
-            conns[1]:Fire()
-        end
-        task.wait(0.1)
-
-        local addBtn = trade.AmountAdd.Frame.Frame.Actions.Items.Add
-        local addConns = getconnections(addBtn.MouseButton1Click)
-        if addConns and #addConns > 0 then
-            addConns[1]:Fire()
-        end
-        task.wait(0.3)
-    end
-end
-
-for _, u in ipairs(addUnits) do
-    selectUnitAndAdd(u, repeatCounts[u] or 1)
-end
-
--- ===== ACCEPT 2 (VERSION TODAY) =====
+-- ===== ACCEPT 2 (SAME LOGIC AS GIVE) =====
 spawn(function()
     local receiveFrame = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
     local acceptBtn = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
@@ -141,12 +99,8 @@ spawn(function()
     end
 end)
 
--- ===== WAIT END & SHUTDOWN =====
+-- ===== WAIT END =====
 repeat
     trade = middle:FindFirstChild("Trade")
     task.wait(0.2)
 until not trade
-
-pcall(function()
-    game:Shutdown()
-end)
