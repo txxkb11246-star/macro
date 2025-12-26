@@ -1,252 +1,230 @@
--- ===== CONFIG =====
+-- ================== CONFIG ==================
 local RUN_ONLY_USERNAME = "dusfuxxx"
 
 local rawUsernames = [[
-SamMaBig30
-dusfuxx1
-dusfuxx2
-dusfuxx
-dusfuxxx
-baebaee888
-aloeveraa888
-youngguu888
-medusaxzx
+vvumvwij6719
+stze19ofyh98
+vtlc94zryf55
+lohn37qbhk02
+xgaldeel1283
+iivq10smkp58
+jqemtnuz0798
+ubsutlek1709
+uclheyrg5377
+nsyznywn6464
 ]]
 
 local addUnits = {"unit_potato"}
-local repeatCounts = {unit_frozen_spike = 3}
-local wantedReceiveUnits = {}
+local repeatCounts = {
+    unit_potato = 1
+}
 
-local NO_UNIT_TIMEOUT = 90
-local ADD_REMOVE_TIMEOUT = 90
--- ===================
+local wantedReceiveUnits = {} -- ว่าง = รับอะไรก็ได้
+local NO_UNIT_TIMEOUT = 90 -- 1 นาทีครึ่ง (วินาที)
 
+-- ================== SERVICES ==================
 local Players = game:GetService("Players")
-if Players.LocalPlayer.Name ~= RUN_ONLY_USERNAME then return end
-
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
+if player.Name ~= RUN_ONLY_USERNAME then return end
 
--- ===== UI =====
-local guiRoot = Instance.new("ScreenGui")
-guiRoot.Name = "TradeStatusUI"
-guiRoot.ResetOnSpawn = false
-guiRoot.Parent = player:WaitForChild("PlayerGui")
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.fromScale(0.4, 0.18)
-frame.Position = UDim2.fromScale(0.3, 0.41)
-frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
-frame.BackgroundTransparency = 0.25
-frame.BorderSizePixel = 0
-frame.Parent = guiRoot
-
-local corner = Instance.new("UICorner")
-corner.CornerRadius = UDim.new(0, 22)
-corner.Parent = frame
-
-local stroke = Instance.new("UIStroke")
-stroke.Color = Color3.fromRGB(255,255,255)
-stroke.Thickness = 1
-stroke.Transparency = 0.75
-stroke.Parent = frame
-
-local layout = Instance.new("UIListLayout")
-layout.FillDirection = Enum.FillDirection.Vertical
-layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-layout.VerticalAlignment = Enum.VerticalAlignment.Center
-layout.Padding = UDim.new(0, 6)
-layout.Parent = frame
-
-local padding = Instance.new("UIPadding")
-padding.PaddingTop = UDim.new(0, 14)
-padding.PaddingBottom = UDim.new(0, 14)
-padding.PaddingLeft = UDim.new(0, 18)
-padding.PaddingRight = UDim.new(0, 18)
-padding.Parent = frame
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.fromScale(1, 0)
-title.AutomaticSize = Enum.AutomaticSize.Y
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.GothamBold
-title.TextSize = 22
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.Text = "TRADE AUTOMATION"
-title.TextXAlignment = Enum.TextXAlignment.Center
-title.Parent = frame
-
-local status = Instance.new("TextLabel")
-status.Size = UDim2.fromScale(1, 0)
-status.AutomaticSize = Enum.AutomaticSize.Y
-status.BackgroundTransparency = 1
-status.Font = Enum.Font.Gotham
-status.TextSize = 18
-status.TextColor3 = Color3.fromRGB(220,220,220)
-status.TextWrapped = true
-status.Text = "Initializing"
-status.TextXAlignment = Enum.TextXAlignment.Center
-status.Parent = frame
-
-local divider = Instance.new("Frame")
-divider.Size = UDim2.new(1, 0, 0, 1)
-divider.BackgroundColor3 = Color3.fromRGB(255,255,255)
-divider.BackgroundTransparency = 0.85
-divider.BorderSizePixel = 0
-divider.Parent = frame
-
-local counter = Instance.new("TextLabel")
-counter.Size = UDim2.fromScale(1, 0)
-counter.AutomaticSize = Enum.AutomaticSize.Y
-counter.BackgroundTransparency = 1
-counter.Font = Enum.Font.GothamMedium
-counter.TextSize = 16
-counter.TextColor3 = Color3.fromRGB(200,200,200)
-counter.Text = "Trades completed: 0"
-counter.TextXAlignment = Enum.TextXAlignment.Center
-counter.Parent = frame
-
-local function setStatus(txt)
-    status.Text = txt
-end
-
-local tradeCount = 0
-local function incTrade()
-    tradeCount += 1
-    counter.Text = "Trades completed: " .. tradeCount
-end
--- ===================
-
-local gui = player.PlayerGui:WaitForChild("GameGui")
-local screen = gui:WaitForChild("Screen")
-local middle = screen:WaitForChild("Middle")
-
+-- ================== USER LIST ==================
 local allowedUsernames = {}
-for name in rawUsernames:gmatch("%S+") do table.insert(allowedUsernames, name) end
+for name in rawUsernames:gmatch("%S+") do
+    table.insert(allowedUsernames, name)
+end
 
-local function isAllowed(username)
-    for _, name in ipairs(allowedUsernames) do if name == username then return true end end
+local function isAllowed(name)
+    for _, v in ipairs(allowedUsernames) do
+        if v == name then return true end
+    end
     return false
 end
 
-local function acceptInvite(username)
-    local targetPlayer = Players:FindFirstChild(username)
-    if targetPlayer then
-        setStatus("Accepting trade invite")
-        pcall(function()
-            ReplicatedStorage.RemoteFunctions.TradeAcceptInvite:InvokeServer(targetPlayer)
-        end)
-    end
+-- ================== UI ==================
+local gui = Instance.new("ScreenGui")
+gui.Name = "TradeStatusUI"
+gui.ResetOnSpawn = false
+gui.Parent = player.PlayerGui
+
+local frame = Instance.new("Frame", gui)
+frame.Size = UDim2.fromScale(0.32, 0.26)
+frame.Position = UDim2.fromScale(0.5, 0.5)
+frame.AnchorPoint = Vector2.new(0.5, 0.5)
+frame.BackgroundColor3 = Color3.fromRGB(0,0,0)
+frame.BackgroundTransparency = 0.15
+frame.BorderColor3 = Color3.fromRGB(255,255,255)
+frame.BorderSizePixel = 1
+
+Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 18)
+
+local layout = Instance.new("UIListLayout", frame)
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.Padding = UDim.new(0, 12)
+
+local pad = Instance.new("UIPadding", frame)
+pad.PaddingTop = UDim.new(0, 20)
+pad.PaddingBottom = UDim.new(0, 20)
+
+local title = Instance.new("TextLabel", frame)
+title.Text = "TRADE AUTOMATION"
+title.Font = Enum.Font.GothamBold
+title.TextSize = 20
+title.TextColor3 = Color3.new(1,1,1)
+title.BackgroundTransparency = 1
+title.AutomaticSize = Enum.AutomaticSize.Y
+
+local statusLabel = Instance.new("TextLabel", frame)
+statusLabel.Text = "Idle"
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextSize = 16
+statusLabel.TextColor3 = Color3.fromRGB(220,220,220)
+statusLabel.BackgroundTransparency = 1
+statusLabel.AutomaticSize = Enum.AutomaticSize.Y
+
+local counterLabel = Instance.new("TextLabel", frame)
+counterLabel.Text = "Trades completed: 0"
+counterLabel.Font = Enum.Font.GothamMedium
+counterLabel.TextSize = 15
+counterLabel.TextColor3 = Color3.fromRGB(200,200,200)
+counterLabel.BackgroundTransparency = 1
+counterLabel.AutomaticSize = Enum.AutomaticSize.Y
+
+local function setStatus(text)
+    statusLabel.Text = text
 end
 
+-- ================== STATE ==================
+local tradeCount = 0
+local countedThisTrade = false
+
+local function countTrade()
+    if countedThisTrade then return end
+    countedThisTrade = true
+    tradeCount += 1
+    counterLabel.Text = "Trades completed: " .. tradeCount
+end
+
+-- ================== CLOSE BUTTON ==================
 local function fireCloseTrade()
-    setStatus("Closing trade (timeout)")
-    local imageLabel = player.PlayerGui.GameGui.Screen.Middle.Trade.Items.Close.GamepadButton.ImageLabel
-    local obj = imageLabel
+    local closePath = player.PlayerGui.GameGui.Screen.Middle.Trade.Items.Close
+    local obj = closePath
     while obj do
         if obj:IsA("GuiButton") then
-            for _, c in ipairs(getconnections(obj.MouseButton1Click)) do pcall(function() c:Fire() end) end
+            for _, c in ipairs(getconnections(obj.MouseButton1Click)) do
+                pcall(function() c:Fire() end)
+            end
             return
         end
         obj = obj.Parent
     end
 end
 
-local function selectUnitAndAdd(trade, unitName, repeatCount)
-    setStatus("Adding units")
-    local unitScrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
-    local unit = unitScrolling:FindFirstChild(unitName)
-    if not unit then return end
-    local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
-    for i = 1, repeatCount do
-        local c = getconnections(button.MouseButton1Click)
-        if c and #c > 0 then c[1]:Fire() end
+-- ================== ADD UNIT (ORIGINAL LOGIC) ==================
+local function addUnit(trade, unitName, amount)
+    local scrolling = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
+    local unitFrame = scrolling:FindFirstChild(unitName)
+    if not unitFrame then return end
+
+    local button = unitFrame:FindFirstChildWhichIsA("TextButton", true)
+    if not button then return end
+
+    for i = 1, amount do
+        for _, c in ipairs(getconnections(button.MouseButton1Click)) do
+            pcall(function() c:Fire() end)
+        end
         task.wait(0.15)
-        local addButton = trade.AmountAdd.Frame.Frame.Actions.Items.Add
-        local c2 = getconnections(addButton.MouseButton1Click)
-        if c2 and #c2 > 0 then c2[1]:Fire() end
+
+        local addBtn = trade.AmountAdd.Frame.Frame.Actions.Items.Add
+        for _, c in ipairs(getconnections(addBtn.MouseButton1Click)) do
+            pcall(function() c:Fire() end)
+        end
         task.wait(0.3)
     end
 end
 
+-- ================== HANDLE TRADE ==================
 local function handleTrade(trade)
+    countedThisTrade = false
     setStatus("Trade opened")
-    local receiveFrame = player.PlayerGui.GameGui.Screen.Middle.Trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
-    local tradeStartTime = tick()
-    local lastSnapshot = {}
-    local lastChangeTime = tick()
 
-    local function getSnapshot()
-        local snap, count = {}, 0
-        for _, u in ipairs(receiveFrame:GetChildren()) do
-            if u:IsA("Frame") then snap[u.Name] = true count += 1 end
+    -- Accept Terms (รอจนหาย)
+    while trade.Terms.Visible do
+        local acceptBtn = trade.Terms.Items.Buttons.Items.Accept
+        for _, c in ipairs(getconnections(acceptBtn.MouseButton1Click)) do
+            pcall(function() c:Fire() end)
         end
-        return snap, count
+        task.wait(0.4)
     end
 
-    local function snapshotChanged(newSnap)
-        for k in pairs(newSnap) do if not lastSnapshot[k] then return true end end
-        for k in pairs(lastSnapshot) do if not newSnap[k] then return true end end
-        return false
+    setStatus("Adding units")
+
+    for _, unit in ipairs(addUnits) do
+        addUnit(trade, unit, repeatCounts[unit] or 1)
     end
 
-    spawn(function()
-        local terms = trade:WaitForChild("Terms")
-        local accept1 = terms.Items.Buttons.Items.Accept
-        setStatus("Accepting terms")
-        while trade and trade.Parent and terms.Visible do
-            local c = getconnections(accept1.MouseButton1Click)
-            if c and #c > 0 then pcall(function() c[1]:Fire() end) end
-            task.wait(0.4)
-        end
-    end)
+    setStatus("Monitoring opponent")
 
-    spawn(function()
-        setStatus("Waiting for partner items")
-        while trade and trade.Parent do
-            local snap, count = getSnapshot()
-            if count == 0 then
-                if tick() - tradeStartTime >= NO_UNIT_TIMEOUT then fireCloseTrade() return end
-            else
-                if snapshotChanged(snap) then lastSnapshot = snap lastChangeTime = tick() end
-                if tick() - lastChangeTime >= ADD_REMOVE_TIMEOUT then fireCloseTrade() return end
+    local receiveFrame =
+        player.PlayerGui.GameGui.Screen.Middle.Trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
+    local acceptBtn =
+        player.PlayerGui.GameGui.Screen.Middle.Trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
+
+    local lastChange = tick()
+    local lastCount = 0
+
+    while trade.Parent do
+        local count = 0
+        for _, f in ipairs(receiveFrame:GetChildren()) do
+            if f:IsA("Frame") then
+                count += 1
             end
-            task.wait(0.5)
         end
-    end)
 
-    while trade and trade.Parent and trade.Terms.Visible do task.wait(0.2) end
+        if count ~= lastCount then
+            lastCount = count
+            lastChange = tick()
+        end
 
-    for _, unitName in ipairs(addUnits) do
-        selectUnitAndAdd(trade, unitName, repeatCounts[unitName] or 1)
-    end
-
-    spawn(function()
-        local acceptButton = player.PlayerGui.GameGui.Screen.Middle.Trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
-        setStatus("Awaiting final accept")
-        while trade and trade.Parent do
-            if acceptButton and acceptButton.Visible then
-                local c = getconnections(acceptButton.MouseButton1Click)
-                if c and #c > 0 then
-                    pcall(function() c[1]:Fire() end)
-                    incTrade()
-                    setStatus("Trade completed")
-                    return
-                end
+        if count > 0 then
+            for _, c in ipairs(getconnections(acceptBtn.MouseButton1Click)) do
+                pcall(function() c:Fire() end)
             end
-            task.wait(0.6)
+        elseif tick() - lastChange >= NO_UNIT_TIMEOUT then
+            setStatus("No items received - closing trade")
+            fireCloseTrade()
+            return
         end
-    end)
+
+        task.wait(0.3)
+    end
 end
 
+-- ================== MAIN LOOP ==================
 spawn(function()
-    setStatus("Idle - waiting for trade")
+    local middle = player.PlayerGui.GameGui.Screen.Middle
     local currentTrade = nil
+
     while true do
-        for _, p in ipairs(Players:GetPlayers()) do if isAllowed(p.Name) then acceptInvite(p.Name) end end
+        for _, p in ipairs(Players:GetPlayers()) do
+            if isAllowed(p.Name) then
+                pcall(function()
+                    ReplicatedStorage.RemoteFunctions.TradeAcceptInvite:InvokeServer(p)
+                end)
+            end
+        end
+
         local trade = middle:FindFirstChild("Trade")
-        if trade and trade ~= currentTrade then currentTrade = trade handleTrade(trade)
-        elseif not trade then currentTrade = nil setStatus("Idle - waiting for trade") end
+        if trade and trade ~= currentTrade then
+            currentTrade = trade
+            handleTrade(trade)
+        elseif not trade and currentTrade then
+            setStatus("Trade completed")
+            countTrade()
+            currentTrade = nil
+            setStatus("Waiting for next trade")
+        end
+
         task.wait(1)
     end
 end)
