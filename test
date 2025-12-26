@@ -18,8 +18,8 @@ local repeatCounts = {
     unit_potato = 1
 }
 
-local wantedReceiveUnits = {} -- ว่าง = รับอะไรก็ได้
-local NO_UNIT_TIMEOUT = 90 -- 1 นาทีครึ่ง (วินาที)
+local wantedReceiveUnits = {} 
+local NO_UNIT_TIMEOUT = 90 
 
 -- ================== SERVICES ==================
 local Players = game:GetService("Players")
