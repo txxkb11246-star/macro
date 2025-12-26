@@ -2,15 +2,16 @@
 local RUN_ONLY_USERNAME = "dusfuxxx"
 
 local rawUsernames = [[
-SamMaBig30
-dusfuxx1
-dusfuxx2
-dusfuxx
-dusfuxxx
-baebaee888
-aloeveraa888
-youngguu888
-medusaxzx
+vvumvwij6719
+stze19ofyh98
+vtlc94zryf55
+lohn37qbhk02
+xgaldeel1283
+iivq10smkp58
+jqemtnuz0798
+ubsutlek1709
+uclheyrg5377
+nsyznywn6464
 ]]
 
 local addUnits = {"unit_potato"}
@@ -34,49 +35,76 @@ guiRoot.ResetOnSpawn = false
 guiRoot.Parent = player:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.fromScale(0.38, 0.16)
-frame.Position = UDim2.fromScale(0.31, 0.42)
-frame.BackgroundColor3 = Color3.fromRGB(255,255,255)
-frame.BackgroundTransparency = 0.2
+frame.Size = UDim2.fromScale(0.4, 0.18)
+frame.Position = UDim2.fromScale(0.3, 0.41)
+frame.BackgroundColor3 = Color3.fromRGB(10,10,10)
+frame.BackgroundTransparency = 0.25
 frame.BorderSizePixel = 0
 frame.Parent = guiRoot
 
-local corner = Instance.new("UICorner", frame)
-corner.CornerRadius = UDim.new(0, 18)
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0, 22)
+corner.Parent = frame
 
-local stroke = Instance.new("UIStroke", frame)
-stroke.Color = Color3.fromRGB(0,0,0)
+local stroke = Instance.new("UIStroke")
+stroke.Color = Color3.fromRGB(255,255,255)
 stroke.Thickness = 1
-stroke.Transparency = 0.6
+stroke.Transparency = 0.75
+stroke.Parent = frame
+
+local layout = Instance.new("UIListLayout")
+layout.FillDirection = Enum.FillDirection.Vertical
+layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+layout.VerticalAlignment = Enum.VerticalAlignment.Center
+layout.Padding = UDim.new(0, 6)
+layout.Parent = frame
+
+local padding = Instance.new("UIPadding")
+padding.PaddingTop = UDim.new(0, 14)
+padding.PaddingBottom = UDim.new(0, 14)
+padding.PaddingLeft = UDim.new(0, 18)
+padding.PaddingRight = UDim.new(0, 18)
+padding.Parent = frame
 
 local title = Instance.new("TextLabel")
-title.Size = UDim2.fromScale(1,0.35)
-title.Position = UDim2.fromScale(0,0)
+title.Size = UDim2.fromScale(1, 0)
+title.AutomaticSize = Enum.AutomaticSize.Y
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.GothamBold
-title.TextScaled = true
-title.TextColor3 = Color3.fromRGB(0,0,0)
+title.TextSize = 22
+title.TextColor3 = Color3.fromRGB(255,255,255)
 title.Text = "TRADE AUTOMATION"
+title.TextXAlignment = Enum.TextXAlignment.Center
 title.Parent = frame
 
 local status = Instance.new("TextLabel")
-status.Size = UDim2.fromScale(1,0.35)
-status.Position = UDim2.fromScale(0,0.35)
+status.Size = UDim2.fromScale(1, 0)
+status.AutomaticSize = Enum.AutomaticSize.Y
 status.BackgroundTransparency = 1
 status.Font = Enum.Font.Gotham
-status.TextScaled = true
-status.TextColor3 = Color3.fromRGB(20,20,20)
+status.TextSize = 18
+status.TextColor3 = Color3.fromRGB(220,220,220)
+status.TextWrapped = true
 status.Text = "Initializing"
+status.TextXAlignment = Enum.TextXAlignment.Center
 status.Parent = frame
 
+local divider = Instance.new("Frame")
+divider.Size = UDim2.new(1, 0, 0, 1)
+divider.BackgroundColor3 = Color3.fromRGB(255,255,255)
+divider.BackgroundTransparency = 0.85
+divider.BorderSizePixel = 0
+divider.Parent = frame
+
 local counter = Instance.new("TextLabel")
-counter.Size = UDim2.fromScale(1,0.3)
-counter.Position = UDim2.fromScale(0,0.7)
+counter.Size = UDim2.fromScale(1, 0)
+counter.AutomaticSize = Enum.AutomaticSize.Y
 counter.BackgroundTransparency = 1
 counter.Font = Enum.Font.GothamMedium
-counter.TextScaled = true
-counter.TextColor3 = Color3.fromRGB(60,60,60)
+counter.TextSize = 16
+counter.TextColor3 = Color3.fromRGB(200,200,200)
 counter.Text = "Trades completed: 0"
+counter.TextXAlignment = Enum.TextXAlignment.Center
 counter.Parent = frame
 
 local function setStatus(txt)
@@ -164,6 +192,17 @@ local function handleTrade(trade)
     end
 
     spawn(function()
+        local terms = trade:WaitForChild("Terms")
+        local accept1 = terms.Items.Buttons.Items.Accept
+        setStatus("Accepting terms")
+        while trade and trade.Parent and terms.Visible do
+            local c = getconnections(accept1.MouseButton1Click)
+            if c and #c > 0 then pcall(function() c[1]:Fire() end) end
+            task.wait(0.4)
+        end
+    end)
+
+    spawn(function()
         setStatus("Waiting for partner items")
         while trade and trade.Parent do
             local snap, count = getSnapshot()
@@ -185,11 +224,16 @@ local function handleTrade(trade)
 
     spawn(function()
         local acceptButton = player.PlayerGui.GameGui.Screen.Middle.Trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
-        setStatus("Awaiting accept")
+        setStatus("Awaiting final accept")
         while trade and trade.Parent do
             if acceptButton and acceptButton.Visible then
                 local c = getconnections(acceptButton.MouseButton1Click)
-                if c and #c > 0 then c[1]:Fire() incTrade() setStatus("Trade completed") end
+                if c and #c > 0 then
+                    pcall(function() c[1]:Fire() end)
+                    incTrade()
+                    setStatus("Trade completed")
+                    return
+                end
             end
             task.wait(0.6)
         end
