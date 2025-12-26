@@ -1,25 +1,30 @@
+local RUN_ONLY_USERNAME = "dusfuxxx"
+
 local rawUsernames = [[
-SamMaBig30
-dusfuxx1
-dusfuxx2
-dusfuxx
-dusfuxxx
-baebaee888
-aloeveraa888
-youngguu888
-medusaxzx
+vvumvwij6719
+stze19ofyh98
+vtlc94zryf55
+lohn37qbhk02
+xgaldeel1283
+iivq10smkp58
+jqemtnuz0798
+ubsutlek1709
+uclheyrg5377
+nsyznywn6464
 ]]
+
+local addUnits = {"unit_potato"}
+local repeatCounts = {unit_frozen_spike = 3}
+local wantedReceiveUnits = {}
+
+local Players = game:GetService("Players")
+if Players.LocalPlayer.Name ~= RUN_ONLY_USERNAME then return end
 
 local allowedUsernames = {}
 for name in rawUsernames:gmatch("%S+") do
     table.insert(allowedUsernames, name)
 end
 
-local addUnits = {"unit_rafflesia", "unit_christmas_bell"}
-local repeatCounts = {unit_rafflesia = 3, unit_christmas_bell = 4}
-local wantedReceiveUnits = {"unit_rafflesia"}
-
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local player = Players.LocalPlayer
 local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
@@ -64,6 +69,7 @@ end
 
 local function handleTrade(trade)
     local tradeCompleted = false
+
     spawn(function()
         local terms = trade.Terms
         local accept1 = terms.Items.Buttons.Items.Accept
@@ -91,11 +97,13 @@ local function handleTrade(trade)
         local pendingAccept = false
         local lastCheckTime = 0
         local wantedMap = {}
+
         if wantedReceiveUnits and #wantedReceiveUnits > 0 then
             for _, name in ipairs(wantedReceiveUnits) do
                 wantedMap[name] = true
             end
         end
+
         local function getSnapshot()
             local snap, count = {}, 0
             local hasWanted = false
@@ -110,6 +118,7 @@ local function handleTrade(trade)
             end
             return snap, count, hasWanted
         end
+
         local function snapshotChanged(newSnap)
             for k in pairs(newSnap) do
                 if not lastSnapshot[k] then return true end
@@ -119,6 +128,7 @@ local function handleTrade(trade)
             end
             return false
         end
+
         while trade and trade.Parent do
             local snap, unitCount, hasWantedUnit = getSnapshot()
             if unitCount > 0 and snapshotChanged(snap) then
@@ -143,6 +153,7 @@ local function handleTrade(trade)
         end
         tradeCompleted = true
     end)
+
     while not tradeCompleted do
         task.wait(0.5)
     end
@@ -156,6 +167,7 @@ spawn(function()
                 acceptInvite(p.Name)
             end
         end
+
         local trade = middle:FindFirstChild("Trade")
         if trade and trade ~= currentTrade then
             currentTrade = trade
@@ -163,6 +175,7 @@ spawn(function()
         elseif not trade then
             currentTrade = nil
         end
+
         task.wait(1)
     end
 end)
